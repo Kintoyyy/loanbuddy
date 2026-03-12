@@ -1,0 +1,58 @@
+<resources>
+    <string name="app_name">LoanBuddy</string>
+
+    <!-- Login -->
+    <string name="login_title">Welcome back</string>
+    <string name="login_subtitle">Sign in to your account to continue</string>
+    <string name="login_card_title">Sign in</string>
+    <string name="login_card_subtitle">Enter your email and password below</string>
+    <string name="email_hint">Email</string>
+    <string name="password_hint">Password</string>
+    <string name="login_button">Sign in</string>
+    <string name="or_continue_with">OR CONTINUE WITH</string>
+    <string name="no_account_register">Don&#8217;t have an account? <b>Create one now</b></string>
+
+    <!-- Register -->
+    <string name="register_title">Create account</string>
+    <string name="register_subtitle">Fill in the details below to get started</string>
+    <string name="register_card_title">Sign up</string>
+    <string name="register_card_subtitle">Enter your details below</string>
+    <string name="full_name_hint">Full Name</string>
+    <string name="confirm_password_hint">Confirm Password</string>
+    <string name="register_button">Create account</string>
+    <string name="have_account_login">Already have an account? <b>Sign in</b></string>
+
+    <!-- Home -->
+    <string name="home_greeting">Good day,</string>
+    <string name="welcome_message">Welcome, %s!</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="my_profile">My Profile</string>
+    <string name="my_profile_desc">View and update your details</string>
+    <string name="admin_panel">Admin Panel</string>
+    <string name="admin_panel_desc">Manage users and loans</string>
+    <string name="logout">Log Out</string>
+    <string name="logout_desc">Sign out of your account</string>
+    <string name="logout_title">Log Out</string>
+    <string name="logout_confirm">Are you sure you want to log out?</string>
+    <string name="logout_yes">Log Out</string>
+    <string name="cancel">Cancel</string>
+    <string name="role_user">User</string>
+    <string name="role_admin">Admin</string>
+
+    <!-- Profile -->
+    <string name="profile_title">My Profile</string>
+    <string name="profile_subtitle">Your account information</string>
+    <string name="label_full_name">Full Name</string>
+    <string name="label_email">Email address</string>
+    <string name="label_role">Role</string>
+    <string name="refresh_profile">Refresh from Server</string>
+    <string name="go_back">Back</string>
+
+    <!-- Admin -->
+    <string name="admin_title">Admin Panel</string>
+    <string name="admin_subtitle">Manage your application</string>
+    <string name="label_admin_email">Logged in as</string>
+    <string name="admin_actions">Quick Actions</string>
+    <string name="manage_loans">Manage Loans</string>
+    <string name="manage_loans_desc">Review and approve loan requests</string>
+</resources>

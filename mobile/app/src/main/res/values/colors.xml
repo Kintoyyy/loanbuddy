@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Shadcn/Zinc palette -->
+    <color name="color_dark_primary">#18181B</color>
+    <color name="zinc_900">#18181B</color>
+    <color name="zinc_700">#3F3F46</color>
+    <color name="zinc_500">#71717A</color>
+    <color name="zinc_400">#A1A1AA</color>
+    <color name="zinc_200">#E4E4E7</color>
+    <color name="zinc_100">#F4F4F5</color>
+    <color name="zinc_50">#FAFAFA</color>
+
+    <!-- Input -->
+    <color name="input_bg">#F0F4FF</color>
+    <color name="input_border">#E2E8F0</color>
+
+    <!-- Accent -->
+    <color name="color_orange">#F97316</color>
+    <color name="color_orange_light">#FFF7ED</color>
+
+    <!-- Page -->
+    <color name="bg_page">#F4F4F5</color>
+    <color name="bg_card">#FFFFFF</color>
+</resources>

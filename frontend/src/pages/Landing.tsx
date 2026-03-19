@@ -19,7 +19,7 @@ function Landing({ isLoggedIn, onLogin, onRegister, onDashboard, onProfile, onLo
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold">MyApp</span>
+            <span className="text-lg font-bold">LoanBuddy</span>
           </div>
           <nav className="flex items-center gap-2">
             {!isLoggedIn ? (

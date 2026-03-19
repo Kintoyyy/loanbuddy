@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataAccessException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
@@ -52,6 +53,22 @@ public class ApiExceptionHandler {
                 request
             ));
     }
+
+            @ExceptionHandler(MissingRequestHeaderException.class)
+            public ResponseEntity<Map<String, Object>> handleMissingRequestHeaderException(
+                MissingRequestHeaderException exception,
+                HttpServletRequest request
+            ) {
+            HttpStatus status = "Authorization".equalsIgnoreCase(exception.getHeaderName())
+                ? HttpStatus.UNAUTHORIZED
+                : HttpStatus.BAD_REQUEST;
+            String message = "Authorization".equalsIgnoreCase(exception.getHeaderName())
+                ? "Bearer token is required"
+                : "Required request header is missing";
+            LOGGER.warn("Request missing required header {}", exception.getHeaderName());
+            return ResponseEntity.status(status)
+                .body(buildErrorBody(status, message, exception.getMessage(), exception.getClass().getSimpleName(), request));
+            }
 
     @ExceptionHandler(Exception.class)
         public ResponseEntity<Map<String, Object>> handleUnexpectedException(

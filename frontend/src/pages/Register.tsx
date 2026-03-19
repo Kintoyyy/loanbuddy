@@ -8,7 +8,10 @@ interface RegisterProps {
 }
 
 function Register({ onGoLogin, onGoLanding }: RegisterProps) {
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,7 +32,7 @@ function Register({ onGoLogin, onGoLanding }: RegisterProps) {
     setLoading(true);
 
     try {
-      const response = await registerUser({ email, password, fullName });
+      const response = await registerUser({ email, password, firstName, lastName, username, birthday });
       setSuccess(`${response.message}. You can login now.`);
       setPassword("");
       setConfirmPassword("");
@@ -78,18 +81,60 @@ function Register({ onGoLogin, onGoLanding }: RegisterProps) {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="fullName" className="text-sm font-medium text-slate-700">Full Name</label>
+                <label htmlFor="firstName" className="text-sm font-medium text-slate-700">First Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <input
-                    id="fullName"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    id="firstName"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                     className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                     required
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="lastName" className="text-sm font-medium text-slate-700">Last Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <input
+                    id="lastName"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="username" className="text-sm font-medium text-slate-700">Username</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <input
+                    id="username"
+                    placeholder="johndoe"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="birthday" className="text-sm font-medium text-slate-700">Birthday</label>
+                <input
+                  id="birthday"
+                  type="date"
+                  value={birthday}
+                  onChange={(e) => setBirthday(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                  required
+                />
               </div>
 
               <div className="space-y-2">

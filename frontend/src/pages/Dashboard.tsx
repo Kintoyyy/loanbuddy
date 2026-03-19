@@ -19,6 +19,7 @@ interface DashboardProps {
 
 function Dashboard({ onGoProfile, onLogout, onGoLanding }: DashboardProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const displayName = profile?.first_name || profile?.username || "";
 
   useEffect(() => {
     getProfile()
@@ -95,7 +96,7 @@ function Dashboard({ onGoProfile, onLogout, onGoLanding }: DashboardProps) {
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-6">
           <div>
             <h1 className="text-lg font-semibold">
-              Welcome back{profile ? `, ${profile.full_name}` : ""}!
+              Welcome back{displayName ? `, ${displayName}` : ""}!
             </h1>
             <p className="text-sm text-slate-600">
               Here's what's happening with your account today.
@@ -237,15 +238,21 @@ function Dashboard({ onGoProfile, onLogout, onGoLanding }: DashboardProps) {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-500">
-                      Full Name
+                      Name
                     </p>
-                    <p className="text-sm">{profile.full_name || "Not set"}</p>
+                    <p className="text-sm">{`${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Not set"}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-500">
-                      Phone
+                      Username
                     </p>
-                    <p className="text-sm">{profile.phone || "Not set"}</p>
+                    <p className="text-sm">{profile.username || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">
+                      Birthday
+                    </p>
+                    <p className="text-sm">{profile.birthday || "Not set"}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-500">

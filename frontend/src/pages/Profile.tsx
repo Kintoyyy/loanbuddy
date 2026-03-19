@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 import {
   User,
   Mail,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import {
   ProfileResponse,
+  getProfilePhotoBlob,
   getProfile,
   updatePassword,
   updateProfile,
@@ -24,28 +25,71 @@ interface ProfileProps {
 }
 
 const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png"]);
+const STRONG_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,64}$/;
 
 function Profile({ onBackHome, onLogout }: ProfileProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const loadProfile = async () => {
+  const initials = profile?.first_name?.charAt(0).toUpperCase() || "U";
+
+  const replacePhotoUrl = useCallback((nextUrl: string | null) => {
+    setPhotoUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      return nextUrl;
+    });
+  }, []);
+
+  const loadProfilePhoto = useCallback(async (profileData?: ProfileResponse | null) => {
+    const photoName = profileData?.photo_filename?.trim();
+    const photoType = profileData?.photo_mime_type?.trim();
+    if (!photoName || !photoType) {
+      replacePhotoUrl(null);
+      return;
+    }
+
+    try {
+      const photoBlob = await getProfilePhotoBlob();
+      if (!photoBlob) {
+        replacePhotoUrl(null);
+        return;
+      }
+
+      replacePhotoUrl(URL.createObjectURL(photoBlob));
+    } catch {
+      replacePhotoUrl(null);
+    }
+  }, [replacePhotoUrl]);
+
+  const loadProfile = useCallback(async () => {
     setError("");
     setLoadingProfile(true);
 
     try {
       const response = await getProfile();
       setProfile(response);
-      setFullName(response.full_name || "");
+      setFirstName(response.first_name || "");
+      setLastName(response.last_name || "");
+      setUsername(response.username || "");
+      setBirthday(response.birthday || "");
       setPhone(response.phone || "");
       setBio(response.bio || "");
+      await loadProfilePhoto(response);
     } catch (requestError) {
       if (requestError instanceof Error) {
         setError(requestError.message);
@@ -55,11 +99,19 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
     } finally {
       setLoadingProfile(false);
     }
-  };
+  }, [loadProfilePhoto]);
 
   useEffect(() => {
     loadProfile();
-  }, []);
+    return () => {
+      setPhotoUrl((currentUrl) => {
+        if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+        }
+        return null;
+      });
+    };
+  }, [loadProfile]);
 
   const handleUpdateProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -67,7 +119,7 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
     setSuccess("");
 
     try {
-      const response = await updateProfile({ fullName, phone, bio });
+      const response = await updateProfile({ firstName, lastName, username, birthday, phone, bio });
       setProfile(response.profile);
       setSuccess(response.message);
     } catch (requestError) {
@@ -84,10 +136,41 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
     setError("");
     setSuccess("");
 
+    if (!currentPassword) {
+      setError("Current password is required.");
+      return;
+    }
+
+    if (!newPassword) {
+      setError("New password is required.");
+      return;
+    }
+
+    if (!STRONG_PASSWORD_PATTERN.test(newPassword)) {
+      setError("Password must be 8-64 chars with uppercase, lowercase, number, and special character.");
+      return;
+    }
+
+    if (!confirmNewPassword) {
+      setError("Please confirm your new password.");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     try {
-      const response = await updatePassword({ newPassword });
+      const response = await updatePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword: confirmNewPassword,
+      });
       setSuccess(response.message);
+      setCurrentPassword("");
       setNewPassword("");
+      setConfirmNewPassword("");
     } catch (requestError) {
       if (requestError instanceof Error) {
         setError(requestError.message);
@@ -204,8 +287,17 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
                 </div>
                 <div>
                   <div className="flex items-center gap-6">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-900 text-white text-2xl font-bold">
-                      {profile.full_name?.charAt(0).toUpperCase() || "U"}
+                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-white text-2xl font-bold">
+                      {photoUrl ? (
+                        <img
+                          src={photoUrl}
+                          alt="Profile"
+                          className="h-full w-full object-cover"
+                          onError={() => replacePhotoUrl(null)}
+                        />
+                      ) : (
+                        <span>{initials}</span>
+                      )}
                     </div>
                     <div className="flex-1 grid gap-1.5">
                       <div className="flex items-center gap-2 text-sm">
@@ -214,7 +306,13 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <User className="h-4 w-4 text-slate-500" />
-                        <span>{profile.full_name || "Not set"}</span>
+                        <span>{`${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Not set"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span>@{profile.username || "Not set"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span>Birthday: {profile.birthday || "Not set"}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-600">
                         <span>Member since {new Date(profile.created_at).toLocaleDateString()}</span>
@@ -236,18 +334,60 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
               <div>
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="fullName" className="text-sm font-medium text-slate-700">Full Name</label>
+                    <label htmlFor="firstName" className="text-sm font-medium text-slate-700">First Name</label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <input
-                        id="fullName"
-                        placeholder="Your full name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        id="firstName"
+                        placeholder="Your first name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
                         className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                         required
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="lastName" className="text-sm font-medium text-slate-700">Last Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <input
+                        id="lastName"
+                        placeholder="Your last name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="username" className="text-sm font-medium text-slate-700">Username</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <input
+                        id="username"
+                        placeholder="Your username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="birthday" className="text-sm font-medium text-slate-700">Birthday</label>
+                    <input
+                      id="birthday"
+                      type="date"
+                      value={birthday}
+                      onChange={(e) => setBirthday(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                      required
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -300,6 +440,22 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
               <div>
                 <form onSubmit={handleUpdatePassword} className="space-y-4">
                   <div className="space-y-2">
+                    <label htmlFor="currentPassword" className="text-sm font-medium text-slate-700">Current Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <input
+                        id="currentPassword"
+                        type="password"
+                        placeholder="Enter current password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
                     <label htmlFor="newPassword" className="text-sm font-medium text-slate-700">New Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -309,6 +465,25 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
                         placeholder="Enter new password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Use 8-64 characters with uppercase, lowercase, number, and special character.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="confirmNewPassword" className="text-sm font-medium text-slate-700">Confirm New Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <input
+                        id="confirmNewPassword"
+                        type="password"
+                        placeholder="Re-enter new password"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
                         className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pl-10 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                         required
                       />

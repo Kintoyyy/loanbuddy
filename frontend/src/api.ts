@@ -29,7 +29,10 @@ const API_BASE_URL = resolveApiBaseUrl();
 export interface RegisterRequest {
   email: string;
   password: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  birthday: string;
 }
 
 export interface RegisterResponse {
@@ -55,7 +58,10 @@ export interface LoginResponse {
 export interface ProfileResponse {
   user_id: string;
   email: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  birthday: string | null;
   phone: string | null;
   bio: string | null;
   photo_filename: string | null;
@@ -65,7 +71,10 @@ export interface ProfileResponse {
 }
 
 export interface UpdateProfileRequest {
-  fullName: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  birthday: string;
   phone: string;
   bio: string;
 }
@@ -76,7 +85,9 @@ export interface UpdateProfileResponse {
 }
 
 export interface UpdatePasswordRequest {
+  currentPassword: string;
   newPassword: string;
+  confirmPassword: string;
 }
 
 export interface UpdatePasswordResponse {
@@ -222,4 +233,46 @@ export function uploadPhoto(file: File): Promise<UploadPhotoResponse> {
     },
     true
   );
+}
+
+export async function getProfilePhotoBlob(): Promise<Blob | null> {
+  const token = getAccessToken();
+  if (!token) {
+    clearAuth();
+    throw new Error("No access token found. Please login first.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/profile/photo`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "omit",
+  });
+
+  if (response.status === 204 || response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const rawBody = await response.text();
+    const message = rawBody || `Request failed with status ${response.status}`;
+
+    if (response.status === 401 || response.status === 403 || response.status === 431 || isJwtSessionError(message)) {
+      clearAuth();
+    }
+
+    if (response.status === 401 || response.status === 403 || isJwtSessionError(message)) {
+      throw new Error("Session expired. Please login again.");
+    }
+
+    if (response.status === 431) {
+      throw new Error("Request headers are too large. Your session was cleared. Please sign in again.");
+    }
+
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  return blob.size > 0 ? blob : null;
 }

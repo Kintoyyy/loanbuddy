@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -17,15 +19,20 @@ import java.util.regex.Pattern;
 public class SupabaseAuthService {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9])\\S{8,64}$");
     private static final int MAX_ACCESS_TOKEN_LENGTH = 16 * 1024;
-        private static final int MAX_METADATA_TEXT_LENGTH = 2048;
-        private static final Set<String> SAFE_METADATA_KEYS = Set.of(
+    private static final int MAX_METADATA_TEXT_LENGTH = 2048;
+    private static final Set<String> SAFE_METADATA_KEYS = Set.of(
+            "first_name",
+            "last_name",
+            "username",
+            "birthday",
             "full_name",
             "phone",
             "bio",
             "photo_filename",
             "photo_mime_type"
-        );
+    );
 
     private final SupabaseClient supabaseClient;
 
@@ -35,12 +42,22 @@ public class SupabaseAuthService {
 
     public Map<String, Object> register(RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
-        validatePassword(request.getPassword());
+        validateStrongPassword(request.getPassword());
+        String firstName = validateRequiredText(request.getFirstName(), "firstName");
+        String lastName = validateRequiredText(request.getLastName(), "lastName");
+        String username = validateRequiredText(request.getUsername(), "username");
+        String birthday = validateBirthday(request.getBirthday());
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("email", email);
         payload.put("password", request.getPassword());
-        payload.put("data", Map.of("full_name", request.getFullName()));
+        payload.put("data", Map.of(
+            "first_name", firstName,
+            "last_name", lastName,
+            "username", username,
+            "birthday", birthday,
+            "full_name", firstName + " " + lastName
+        ));
 
         JsonNode body = supabaseClient.callAuth("/auth/v1/signup", "POST", payload, null);
         JsonNode userNode = body.path("user");
@@ -54,7 +71,7 @@ public class SupabaseAuthService {
 
     public Map<String, Object> login(LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
-        validatePassword(request.getPassword());
+        validatePasswordRequired(request.getPassword());
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("email", email);
@@ -101,9 +118,43 @@ public class SupabaseAuthService {
         return userId;
     }
 
-    public void updatePassword(String accessToken, String newPassword) {
-        validatePassword(newPassword);
+    public void updatePassword(String accessToken, String currentPassword, String newPassword) {
+        validatePasswordRequired(currentPassword);
+        validateStrongPassword(newPassword);
+        verifyCurrentPassword(accessToken, currentPassword);
         supabaseClient.callAuth("/auth/v1/user", "PUT", Map.of("password", newPassword), accessToken);
+    }
+
+    private void verifyCurrentPassword(String accessToken, String currentPassword) {
+        JsonNode userBody = supabaseClient.callAuth("/auth/v1/user", "GET", null, accessToken);
+        String email = userBody.path("email").asText("").trim();
+        String authenticatedUserId = userBody.path("id").asText("").trim();
+        if (email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unable to verify current password");
+        }
+        if (authenticatedUserId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unable to verify current password");
+        }
+
+        Map<String, Object> verifyPayload = new HashMap<>();
+        verifyPayload.put("email", email);
+        verifyPayload.put("password", currentPassword);
+
+        try {
+            JsonNode verifyBody = supabaseClient.callAuth("/auth/v1/token?grant_type=password", "POST", verifyPayload, null);
+            String reauthAccessToken = verifyBody.path("access_token").asText("").trim();
+            String reauthUserId = verifyBody.path("user").path("id").asText("").trim();
+
+            if (reauthAccessToken.isBlank() || !authenticatedUserId.equals(reauthUserId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+            }
+        } catch (ResponseStatusException exception) {
+            int status = exception.getStatusCode().value();
+            if (status == HttpStatus.BAD_REQUEST.value() || status == HttpStatus.UNAUTHORIZED.value()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+            }
+            throw exception;
+        }
     }
 
     private JsonNode removeOversizedAuthMetadata(JsonNode loginBody, Map<String, Object> loginPayload, String accessToken) {
@@ -184,9 +235,36 @@ public class SupabaseAuthService {
         return normalized;
     }
 
-    private void validatePassword(String password) {
+    private void validatePasswordRequired(String password) {
         if (password == null || password.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is required");
+        }
+    }
+
+    private void validateStrongPassword(String password) {
+        validatePasswordRequired(password);
+        if (!STRONG_PASSWORD_PATTERN.matcher(password).matches()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Password must be 8-64 chars with uppercase, lowercase, number, and special character"
+            );
+        }
+    }
+
+    private String validateRequiredText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " is required");
+        }
+        return value.trim();
+    }
+
+    private String validateBirthday(String birthday) {
+        String normalized = validateRequiredText(birthday, "birthday");
+        try {
+            LocalDate.parse(normalized);
+            return normalized;
+        } catch (DateTimeParseException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "birthday must be in YYYY-MM-DD format");
         }
     }
 }

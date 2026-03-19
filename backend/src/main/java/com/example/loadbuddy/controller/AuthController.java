@@ -6,11 +6,14 @@ import com.example.loadbuddy.model.LoginRequest;
 import com.example.loadbuddy.model.RegisterRequest;
 import com.example.loadbuddy.service.ProfileService;
 import com.example.loadbuddy.service.SupabaseAuthService;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.concurrent.TimeUnit;
 import java.util.Map;
 import java.util.UUID;
 
@@ -42,7 +45,7 @@ public class AuthController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<Map<String, Object>> profile(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<Map<String, Object>> profile(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         String token = extractToken(authorizationHeader);
         UUID userId = UUID.fromString(supabaseAuthService.getAuthenticatedUserId(token));
         Map<String, Object> response = profileService.getProfile(userId, token);
@@ -51,7 +54,7 @@ public class AuthController {
 
     @PutMapping("/profile")
     public ResponseEntity<Map<String, Object>> editProfile(
-            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestBody EditProfileRequest request
     ) {
         String token = extractToken(authorizationHeader);
@@ -62,26 +65,58 @@ public class AuthController {
 
     @PutMapping("/profile/password")
     public ResponseEntity<Map<String, Object>> editPassword(
-            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestBody EditPasswordRequest request
     ) {
+        if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "currentPassword is required");
+        }
+
         if (request.getNewPassword() == null || request.getNewPassword().isBlank()) {
             throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "newPassword is required");
         }
 
-        supabaseAuthService.updatePassword(extractToken(authorizationHeader), request.getNewPassword());
+        if (request.getConfirmPassword() == null || request.getConfirmPassword().isBlank()) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "confirmPassword is required");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Passwords do not match");
+        }
+
+        supabaseAuthService.updatePassword(
+            extractToken(authorizationHeader),
+            request.getCurrentPassword(),
+            request.getNewPassword()
+        );
         return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
     }
 
     @PostMapping("/profile/photo")
     public ResponseEntity<Map<String, Object>> uploadPhoto(
-            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestParam("file") MultipartFile file
     ) {
         String token = extractToken(authorizationHeader);
         UUID userId = UUID.fromString(supabaseAuthService.getAuthenticatedUserId(token));
         Map<String, Object> response = profileService.uploadPhoto(userId, file, token);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/profile/photo")
+    public ResponseEntity<byte[]> profilePhoto(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        String token = extractToken(authorizationHeader);
+        UUID userId = UUID.fromString(supabaseAuthService.getAuthenticatedUserId(token));
+        ProfileService.ProfilePhoto photo = profileService.getProfilePhoto(userId, token);
+
+        if (photo == null || photo.bytes().length == 0) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(photo.mimeType()))
+                .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePrivate())
+                .body(photo.bytes());
     }
 
     private String extractToken(String authorizationHeader) {

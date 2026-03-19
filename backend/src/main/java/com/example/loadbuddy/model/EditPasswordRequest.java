@@ -2,7 +2,17 @@ package com.example.loadbuddy.model;
 
 public class EditPasswordRequest {
 
+    private String currentPassword;
     private String newPassword;
+    private String confirmPassword;
+
+    public String getCurrentPassword() {
+        return currentPassword;
+    }
+
+    public void setCurrentPassword(String currentPassword) {
+        this.currentPassword = currentPassword;
+    }
 
     public String getNewPassword() {
         return newPassword;
@@ -10,5 +20,13 @@ public class EditPasswordRequest {
 
     public void setNewPassword(String newPassword) {
         this.newPassword = newPassword;
+    }
+
+    public String getConfirmPassword() {
+        return confirmPassword;
+    }
+
+    public void setConfirmPassword(String confirmPassword) {
+        this.confirmPassword = confirmPassword;
     }
 }

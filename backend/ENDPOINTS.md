@@ -27,7 +27,10 @@ Get `access_token` from the Login API.
 {
   "email": "user1@example.com",
   "password": "P@ssword123",
-  "fullName": "User One"
+  "firstName": "User",
+  "lastName": "One",
+  "username": "userone",
+  "birthday": "1998-04-15"
 }
 ```
 
@@ -86,7 +89,10 @@ Get `access_token` from the Login API.
 {
   "user_id": "9f6f0f04-3b2f-4d17-a616-7df3f2f5b462",
   "email": "user1@example.com",
-  "full_name": "User One",
+  "first_name": "User",
+  "last_name": "One",
+  "username": "userone",
+  "birthday": "1998-04-15",
   "phone": "+639999999999",
   "bio": "Hello from Supabase",
   "photo_filename": "profile.png",
@@ -109,7 +115,10 @@ Get `access_token` from the Login API.
 
 ```json
 {
-  "fullName": "Updated User",
+  "firstName": "Updated",
+  "lastName": "User",
+  "username": "updateduser",
+  "birthday": "1998-04-15",
   "phone": "+639999999999",
   "bio": "Updated bio"
 }
@@ -123,7 +132,10 @@ Get `access_token` from the Login API.
   "profile": {
     "user_id": "9f6f0f04-3b2f-4d17-a616-7df3f2f5b462",
     "email": "user1@example.com",
-    "full_name": "Updated User",
+    "first_name": "Updated",
+    "last_name": "User",
+    "username": "updateduser",
+    "birthday": "1998-04-15",
     "phone": "+639999999999",
     "bio": "Updated bio",
     "photo_filename": "profile.png",
@@ -178,6 +190,26 @@ Get `access_token` from the Login API.
   "size_bytes": 125430
 }
 ```
+
+---
+
+## 7) Get Profile Photo API
+
+- **Method:** `GET`
+- **URL:** `/profile/photo`
+- **Auth Required:** Yes (`Bearer token`)
+
+### Success Response (200)
+
+- Returns raw image bytes (`image/jpeg` or `image/png`).
+
+### Not Found (404)
+
+- Returned when no profile photo exists.
+
+### Notes
+
+- If the stored image bytes are invalid, backend automatically clears invalid photo fields in DB and returns `404`.
 
 ---
 

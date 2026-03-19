@@ -20,6 +20,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class ProfileService {
     public Map<String, Object> getProfile(UUID userId, String accessToken) {
         try {
             JsonNode response = supabaseClient.callRest(
-                    "/rest/v1/user_profiles?user_id=eq." + userId + "&select=user_id,email,full_name,phone,bio,photo_filename,photo_mime_type,created_at,updated_at",
+                    "/rest/v1/user_profiles?user_id=eq." + userId + "&select=user_id,email,first_name,last_name,username,birthday,phone,bio,photo_filename,photo_mime_type,created_at,updated_at",
                     "GET", null, accessToken, false
             );
 
@@ -63,13 +64,16 @@ public class ProfileService {
 
     public Map<String, Object> updateProfile(UUID userId, EditProfileRequest request, String accessToken) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("full_name", request.getFullName());
+        payload.put("first_name", request.getFirstName());
+        payload.put("last_name", request.getLastName());
+        payload.put("username", request.getUsername());
+        payload.put("birthday", request.getBirthday());
         payload.put("phone", request.getPhone());
         payload.put("bio", request.getBio());
 
         try {
             JsonNode responseNode = supabaseClient.callRest(
-                    "/rest/v1/user_profiles?user_id=eq." + userId + "&select=user_id,email,full_name,phone,bio,photo_filename,photo_mime_type,created_at,updated_at",
+                "/rest/v1/user_profiles?user_id=eq." + userId + "&select=user_id,email,first_name,last_name,username,birthday,phone,bio,photo_filename,photo_mime_type,created_at,updated_at",
                     "PATCH", payload, accessToken, true
             );
 
@@ -135,6 +139,52 @@ public class ProfileService {
         response.put("file_reference", userId + "/" + file.getOriginalFilename());
         response.put("size_bytes", bytes.length);
         return response;
+    }
+
+    public ProfilePhoto getProfilePhoto(UUID userId, String accessToken) {
+        try {
+            JsonNode response = supabaseClient.callRest(
+                    "/rest/v1/user_profiles?user_id=eq." + userId + "&select=photo,photo_mime_type",
+                    "GET", null, accessToken, false
+            );
+
+            if (!response.isArray() || response.isEmpty()) {
+                return null;
+            }
+
+            JsonNode row = response.get(0);
+            JsonNode photoNode = row.path("photo");
+            String mimeType = normalizeContentType(row.path("photo_mime_type").asText(""));
+
+            if (photoNode.isMissingNode() || photoNode.isNull() || photoNode.asText("").isBlank()) {
+                return null;
+            }
+
+            if (!ALLOWED_PHOTO_CONTENT_TYPES.contains(mimeType)) {
+                clearInvalidProfilePhoto(userId, accessToken);
+                return null;
+            }
+
+            byte[] bytes;
+            try {
+                bytes = decodeBytea(photoNode.asText());
+            } catch (Exception ignored) {
+                clearInvalidProfilePhoto(userId, accessToken);
+                return null;
+            }
+
+            if (!isValidImage(bytes, mimeType)) {
+                clearInvalidProfilePhoto(userId, accessToken);
+                return null;
+            }
+
+            return new ProfilePhoto(bytes, mimeType);
+        } catch (ResponseStatusException exception) {
+            if (isMissingTableError(exception)) {
+                return null;
+            }
+            throw exception;
+        }
     }
 
     private String normalizeContentType(String contentType) {
@@ -234,7 +284,10 @@ public class ProfileService {
         Map<String, Object> profile = new HashMap<>();
         profile.put("user_id", user.path("id").asText(""));
         profile.put("email", user.path("email").asText(""));
-        profile.put("full_name", metadata.path("full_name").asText(""));
+        profile.put("first_name", metadata.path("first_name").asText(""));
+        profile.put("last_name", metadata.path("last_name").asText(""));
+        profile.put("username", metadata.path("username").asText(""));
+        profile.put("birthday", metadata.path("birthday").asText(""));
         profile.put("phone", metadata.path("phone").asText(""));
         profile.put("bio", metadata.path("bio").asText(""));
         profile.put("photo_filename", metadata.path("photo_filename").asText(""));
@@ -261,5 +314,57 @@ public class ProfileService {
         if (message == null) return false;
         String normalized = message.toLowerCase();
         return normalized.contains("could not find the table") || normalized.contains("schema cache");
+    }
+
+    private byte[] decodeBytea(String value) {
+        if (value == null || value.isBlank()) {
+            return new byte[0];
+        }
+
+        String normalized = value.trim();
+        if (normalized.startsWith("\\x") || normalized.startsWith("\\\\x")) {
+            String hex = normalized.startsWith("\\\\x") ? normalized.substring(3) : normalized.substring(2);
+            if ((hex.length() % 2) != 0) {
+                throw new IllegalArgumentException("Invalid hex bytea length");
+            }
+            byte[] bytes = new byte[hex.length() / 2];
+            for (int index = 0; index < hex.length(); index += 2) {
+                bytes[index / 2] = (byte) Integer.parseInt(hex.substring(index, index + 2), 16);
+            }
+            return bytes;
+        }
+
+        return Base64.getDecoder().decode(normalized);
+    }
+
+    private boolean isValidImage(byte[] bytes, String mimeType) {
+        if (bytes == null || bytes.length == 0 || !ALLOWED_PHOTO_CONTENT_TYPES.contains(mimeType)) {
+            return false;
+        }
+
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
+            return image != null && image.getWidth() > 0 && image.getHeight() > 0;
+        } catch (IOException exception) {
+            return false;
+        }
+    }
+
+    private void clearInvalidProfilePhoto(UUID userId, String accessToken) {
+        Map<String, Object> clearPayload = new HashMap<>();
+        clearPayload.put("photo", null);
+        clearPayload.put("photo_filename", null);
+        clearPayload.put("photo_mime_type", null);
+
+        try {
+            supabaseClient.callRest(
+                    "/rest/v1/user_profiles?user_id=eq." + userId,
+                    "PATCH", clearPayload, accessToken, false
+            );
+        } catch (ResponseStatusException ignored) {
+        }
+    }
+
+    public record ProfilePhoto(byte[] bytes, String mimeType) {
     }
 }

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import {
   User,
   Mail,
@@ -22,6 +22,8 @@ interface ProfileProps {
   onBackHome: () => void;
   onLogout: () => void;
 }
+
+const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png"]);
 
 function Profile({ onBackHome, onLogout }: ProfileProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
@@ -105,6 +107,11 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
       return;
     }
 
+    if (!ALLOWED_PHOTO_TYPES.has(photoFile.type)) {
+      setError("Only JPG and PNG files are allowed.");
+      return;
+    }
+
     try {
       const response = await uploadPhoto(photoFile);
       setSuccess(`${response.message} (${response.file_reference})`);
@@ -117,6 +124,25 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
         setError("Failed to upload photo.");
       }
     }
+  };
+
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] || null;
+
+    if (!selectedFile) {
+      setPhotoFile(null);
+      return;
+    }
+
+    if (!ALLOWED_PHOTO_TYPES.has(selectedFile.type)) {
+      setPhotoFile(null);
+      setError("Only JPG and PNG files are allowed.");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    setPhotoFile(selectedFile);
   };
 
   return (
@@ -316,7 +342,7 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
                       id="photo"
                       type="file"
                       accept=".jpg,.jpeg,.png"
-                      onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                      onChange={handlePhotoChange}
                       className="w-full cursor-pointer rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
                     />
                   </div>

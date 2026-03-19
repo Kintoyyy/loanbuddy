@@ -2,6 +2,8 @@ package com.example.loadbuddy.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import java.net.http.HttpResponse;
 
 @Service
 public class SupabaseClient {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SupabaseClient.class);
 
     private final String supabaseUrl;
     private final String anonKey;
@@ -36,6 +40,10 @@ public class SupabaseClient {
         this.httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
+
+        if (!hasServiceRoleKey()) {
+            LOGGER.warn("SUPABASE_SERVICE_ROLE_KEY is not configured. Automatic oversized metadata cleanup may fail for some users.");
+        }
     }
 
     public boolean hasServiceRoleKey() {

@@ -9,13 +9,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class ProfileService {
+
+    private static final Set<String> ALLOWED_PHOTO_CONTENT_TYPES = Set.of("image/jpeg", "image/png");
+    private static final int MAX_PHOTO_DIMENSION = 1024;
+    private static final float JPEG_QUALITY = 0.82f;
 
     private final SupabaseClient supabaseClient;
     private final ObjectMapper objectMapper;
@@ -80,15 +96,14 @@ public class ProfileService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo file is required");
         }
 
-        String contentType = file.getContentType();
-        if (contentType == null ||
-                (!contentType.equalsIgnoreCase("image/jpeg") && !contentType.equalsIgnoreCase("image/png"))) {
+        String contentType = normalizeContentType(file.getContentType());
+        if (!ALLOWED_PHOTO_CONTENT_TYPES.contains(contentType)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only .jpg and .png files are allowed");
         }
 
         byte[] bytes;
         try {
-            bytes = file.getBytes();
+            bytes = compressImage(file.getBytes(), contentType);
         } catch (IOException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to read image file");
         }
@@ -120,6 +135,96 @@ public class ProfileService {
         response.put("file_reference", userId + "/" + file.getOriginalFilename());
         response.put("size_bytes", bytes.length);
         return response;
+    }
+
+    private String normalizeContentType(String contentType) {
+        if (contentType == null) {
+            return "";
+        }
+        return contentType.trim().toLowerCase();
+    }
+
+    private byte[] compressImage(byte[] sourceBytes, String contentType) {
+        BufferedImage source;
+        try {
+            source = ImageIO.read(new ByteArrayInputStream(sourceBytes));
+        } catch (IOException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to process image file");
+        }
+
+        if (source == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid image file");
+        }
+
+        String format = "image/png".equals(contentType) ? "png" : "jpeg";
+        BufferedImage resized = resizeIfNeeded(source, MAX_PHOTO_DIMENSION);
+        BufferedImage normalized = toCompatibleImage(resized, format);
+
+        return writeCompressedImage(normalized, format);
+    }
+
+    private byte[] writeCompressedImage(BufferedImage image, String format) {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(format);
+        if (!writers.hasNext()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported image format");
+        }
+
+        ImageWriter writer = writers.next();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (ImageOutputStream imageOutput = ImageIO.createImageOutputStream(output)) {
+            writer.setOutput(imageOutput);
+            ImageWriteParam params = writer.getDefaultWriteParam();
+
+            if (params.canWriteCompressed()) {
+                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                params.setCompressionQuality("jpeg".equals(format) ? JPEG_QUALITY : 0.9f);
+            }
+
+            writer.write(null, new IIOImage(image, null, null), params);
+            writer.dispose();
+            return output.toByteArray();
+        } catch (IOException exception) {
+            writer.dispose();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to process image file");
+        }
+    }
+
+    private BufferedImage resizeIfNeeded(BufferedImage source, int maxDimension) {
+        int width = source.getWidth();
+        int height = source.getHeight();
+        int longest = Math.max(width, height);
+
+        if (longest <= maxDimension) {
+            return source;
+        }
+
+        double scale = (double) maxDimension / longest;
+        int newWidth = Math.max(1, (int) Math.round(width * scale));
+        int newHeight = Math.max(1, (int) Math.round(height * scale));
+
+        BufferedImage resized = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = resized.createGraphics();
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        graphics.drawImage(source, 0, 0, newWidth, newHeight, null);
+        graphics.dispose();
+
+        return resized;
+    }
+
+    private BufferedImage toCompatibleImage(BufferedImage image, String format) {
+        if (!"jpeg".equals(format)) {
+            return image;
+        }
+
+        BufferedImage rgb = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = rgb.createGraphics();
+        graphics.setColor(java.awt.Color.WHITE);
+        graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+        graphics.drawImage(image, 0, 0, null);
+        graphics.dispose();
+        return rgb;
     }
 
     private Map<String, Object> getProfileFromAuthMetadata(String accessToken) {

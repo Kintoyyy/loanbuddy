@@ -5,6 +5,7 @@ const REFRESH_TOKEN_KEY = "refresh_token";
 const USER_ID_KEY = "user_id";
 const JWT_PART_COUNT = 3;
 const AUTH_CHANGE_EVENT = "loanbuddy-auth-change";
+const MAX_ACCESS_TOKEN_LENGTH = 16 * 1024;
 
 interface JwtPayload {
   exp?: number;
@@ -46,7 +47,13 @@ export function saveAuthSession(loginData: LoginResponse) {
     throw new Error("Received an invalid session token. Please login again.");
   }
 
-  localStorage.setItem(ACCESS_TOKEN_KEY, loginData.access_token);
+  const normalizedAccessToken = normalizeToken(loginData.access_token);
+  if (!normalizedAccessToken || normalizedAccessToken.length > MAX_ACCESS_TOKEN_LENGTH) {
+    clearAuth();
+    throw new Error("Session token is too large. Please login again.");
+  }
+
+  localStorage.setItem(ACCESS_TOKEN_KEY, normalizedAccessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, loginData.refresh_token);
   localStorage.setItem(USER_ID_KEY, loginData.user_id);
   notifyAuthChange();
@@ -72,8 +79,9 @@ export function getAccessToken(): string | null {
   const payload = isMalformedJwt ? null : parseJwtPayload(token);
   const isExpired = payload?.exp !== undefined && payload.exp * 1000 <= Date.now();
   const hasValidExp = payload?.exp === undefined || Number.isFinite(payload.exp);
+  const isTooLarge = token.length > MAX_ACCESS_TOKEN_LENGTH;
 
-  if (!token || hasWhitespace || isMalformedJwt || !payload || !hasValidExp || isExpired) {
+  if (!token || isTooLarge || hasWhitespace || isMalformedJwt || !payload || !hasValidExp || isExpired) {
     clearAuth();
     return null;
   }

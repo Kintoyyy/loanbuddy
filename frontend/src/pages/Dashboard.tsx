@@ -9,7 +9,7 @@ import {
   CreditCard,
   TrendingUp,
 } from "lucide-react";
-import { getProfile, ProfileResponse } from "../api";
+import { getProfile, getProfilePhotoBlob, ProfileResponse } from "../api";
 
 interface DashboardProps {
   onGoProfile: () => void;
@@ -19,12 +19,62 @@ interface DashboardProps {
 
 function Dashboard({ onGoProfile, onLogout, onGoLanding }: DashboardProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const displayName = profile?.first_name || profile?.username || "";
+  const initials = profile?.first_name?.charAt(0).toUpperCase() || "U";
 
   useEffect(() => {
-    getProfile()
-      .then(setProfile)
-      .catch(() => {});
+    let active = true;
+
+    const loadDashboardProfile = async () => {
+      try {
+        const profileResponse = await getProfile();
+        if (!active) return;
+        setProfile(profileResponse);
+
+        if (!profileResponse.photo_filename || !profileResponse.photo_mime_type) {
+          setPhotoUrl((currentUrl) => {
+            if (currentUrl) {
+              URL.revokeObjectURL(currentUrl);
+            }
+            return null;
+          });
+          return;
+        }
+
+        const photoBlob = await getProfilePhotoBlob();
+        if (!active || !photoBlob) {
+          setPhotoUrl((currentUrl) => {
+            if (currentUrl) {
+              URL.revokeObjectURL(currentUrl);
+            }
+            return null;
+          });
+          return;
+        }
+
+        const nextPhotoUrl = URL.createObjectURL(photoBlob);
+        setPhotoUrl((currentUrl) => {
+          if (currentUrl) {
+            URL.revokeObjectURL(currentUrl);
+          }
+          return nextPhotoUrl;
+        });
+      } catch {
+      }
+    };
+
+    loadDashboardProfile();
+
+    return () => {
+      active = false;
+      setPhotoUrl((currentUrl) => {
+        if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+        }
+        return null;
+      });
+    };
   }, []);
 
   const stats = [
@@ -106,7 +156,18 @@ function Dashboard({ onGoProfile, onLogout, onGoLanding }: DashboardProps) {
             onClick={onGoProfile}
             className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            <User className="mr-2 h-4 w-4" />
+            <span className="mr-2 flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-xs font-semibold text-white">
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                  onError={() => setPhotoUrl(null)}
+                />
+              ) : (
+                <span>{initials}</span>
+              )}
+            </span>
             Profile
           </button>
         </header>

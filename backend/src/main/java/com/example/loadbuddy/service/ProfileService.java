@@ -4,6 +4,9 @@ import com.example.loadbuddy.model.EditProfileRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,7 +23,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,16 +32,24 @@ import java.util.UUID;
 @Service
 public class ProfileService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProfileService.class);
     private static final Set<String> ALLOWED_PHOTO_CONTENT_TYPES = Set.of("image/jpeg", "image/png");
     private static final int MAX_PHOTO_DIMENSION = 1024;
     private static final float JPEG_QUALITY = 0.82f;
+    private static final String DEFAULT_PHOTO_BUCKET = "profile-photos";
 
     private final SupabaseClient supabaseClient;
     private final ObjectMapper objectMapper;
+    private final String profilePhotoBucket;
 
-    public ProfileService(SupabaseClient supabaseClient, ObjectMapper objectMapper) {
+    public ProfileService(
+            SupabaseClient supabaseClient,
+            ObjectMapper objectMapper,
+            @Value("${app.profile-photo-bucket:" + DEFAULT_PHOTO_BUCKET + "}") String profilePhotoBucket
+    ) {
         this.supabaseClient = supabaseClient;
         this.objectMapper = objectMapper;
+        this.profilePhotoBucket = profilePhotoBucket;
     }
 
     public Map<String, Object> getProfile(UUID userId, String accessToken) {
@@ -112,79 +122,77 @@ public class ProfileService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to read image file");
         }
 
+        String previousFilename = getCurrentPhotoFilename(userId, accessToken);
+        String storedFilename = buildStoredFilename(contentType);
+        String objectPath = buildObjectPath(userId, storedFilename);
+
+        // Upload to storage bucket
+        uploadPhotoToStorageWithBucketRecovery(objectPath, bytes, contentType, accessToken);
+
+        // Update profile metadata in database using service role key (bypasses RLS)
         Map<String, Object> payload = new HashMap<>();
-        payload.put("photo", toHexBytea(bytes));
-        payload.put("photo_filename", file.getOriginalFilename());
+        payload.put("photo_filename", storedFilename);
         payload.put("photo_mime_type", contentType);
 
         try {
+            // Use service role key for database operations to bypass RLS issues
+            String updateToken = supabaseClient.getServiceRoleKeyOrAccessToken(accessToken);
             JsonNode responseNode = supabaseClient.callRest(
                     "/rest/v1/user_profiles?user_id=eq." + userId + "&select=user_id",
-                    "PATCH", payload, accessToken, true
+                    "PATCH", payload, updateToken, true
             );
 
             if (!responseNode.isArray() || responseNode.isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found");
             }
         } catch (ResponseStatusException exception) {
+            deleteStorageObjectIfExists(userId, storedFilename, accessToken);
             if (!isMissingTableError(exception)) throw exception;
+            // Fallback to auth metadata if table doesn't exist
             Map<String, Object> metadataPayload = new HashMap<>();
-            metadataPayload.put("photo_filename", file.getOriginalFilename());
+            metadataPayload.put("photo_filename", storedFilename);
             metadataPayload.put("photo_mime_type", contentType);
             updateAuthMetadata(accessToken, metadataPayload);
         }
 
+        deleteStorageObjectIfExists(userId, previousFilename, accessToken);
+
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Photo uploaded successfully");
-        response.put("file_reference", userId + "/" + file.getOriginalFilename());
+        response.put("file_reference", profilePhotoBucket + "/" + objectPath);
         response.put("size_bytes", bytes.length);
         return response;
     }
 
     public ProfilePhoto getProfilePhoto(UUID userId, String accessToken) {
+        PhotoMetadata metadata = getPhotoMetadata(userId, accessToken);
+        if (metadata == null || metadata.filename().isBlank() || metadata.mimeType().isBlank()) {
+            return null;
+        }
+
+        String mimeType = normalizeContentType(metadata.mimeType());
+        if (!ALLOWED_PHOTO_CONTENT_TYPES.contains(mimeType)) {
+            clearInvalidProfilePhoto(userId, accessToken, metadata.filename());
+            return null;
+        }
+
+        byte[] bytes;
         try {
-            JsonNode response = supabaseClient.callRest(
-                    "/rest/v1/user_profiles?user_id=eq." + userId + "&select=photo,photo_mime_type",
-                    "GET", null, accessToken, false
-            );
-
-            if (!response.isArray() || response.isEmpty()) {
-                return null;
-            }
-
-            JsonNode row = response.get(0);
-            JsonNode photoNode = row.path("photo");
-            String mimeType = normalizeContentType(row.path("photo_mime_type").asText(""));
-
-            if (photoNode.isMissingNode() || photoNode.isNull() || photoNode.asText("").isBlank()) {
-                return null;
-            }
-
-            if (!ALLOWED_PHOTO_CONTENT_TYPES.contains(mimeType)) {
-                clearInvalidProfilePhoto(userId, accessToken);
-                return null;
-            }
-
-            byte[] bytes;
-            try {
-                bytes = decodeBytea(photoNode.asText());
-            } catch (Exception ignored) {
-                clearInvalidProfilePhoto(userId, accessToken);
-                return null;
-            }
-
-            if (!isValidImage(bytes, mimeType)) {
-                clearInvalidProfilePhoto(userId, accessToken);
-                return null;
-            }
-
-            return new ProfilePhoto(bytes, mimeType);
+            bytes = supabaseClient.downloadStorageObject(profilePhotoBucket, buildObjectPath(userId, metadata.filename()), accessToken);
         } catch (ResponseStatusException exception) {
-            if (isMissingTableError(exception)) {
+            if (exception.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                clearInvalidProfilePhoto(userId, accessToken, metadata.filename());
                 return null;
             }
             throw exception;
         }
+
+        if (!isValidImage(bytes, mimeType)) {
+            clearInvalidProfilePhoto(userId, accessToken, metadata.filename());
+            return null;
+        }
+
+        return new ProfilePhoto(bytes, mimeType);
     }
 
     private String normalizeContentType(String contentType) {
@@ -192,6 +200,30 @@ public class ProfileService {
             return "";
         }
         return contentType.trim().toLowerCase();
+    }
+
+    private void uploadPhotoToStorageWithBucketRecovery(String objectPath, byte[] bytes, String contentType, String accessToken) {
+        // Use service role key to bypass RLS restrictions for storage
+        String storageToken = supabaseClient.getServiceRoleKeyOrAccessToken(accessToken);
+        try {
+            supabaseClient.uploadStorageObject(profilePhotoBucket, objectPath, bytes, contentType, storageToken, true);
+            return;
+        } catch (ResponseStatusException exception) {
+            if (!isBucketNotFoundError(exception)) {
+                throw exception;
+            }
+        }
+
+        supabaseClient.ensureStorageBucket(profilePhotoBucket);
+        supabaseClient.uploadStorageObject(profilePhotoBucket, objectPath, bytes, contentType, storageToken, true);
+    }
+
+    private boolean isBucketNotFoundError(ResponseStatusException exception) {
+        String reason = exception.getReason();
+        if (reason == null) {
+            return false;
+        }
+        return reason.toLowerCase().contains("bucket not found");
     }
 
     private byte[] compressImage(byte[] sourceBytes, String contentType) {
@@ -301,12 +333,61 @@ public class ProfileService {
         supabaseClient.callAuth("/auth/v1/user", "PUT", Map.of("data", metadata), accessToken);
     }
 
-    private String toHexBytea(byte[] bytes) {
-        StringBuilder sb = new StringBuilder("\\x");
-        for (byte value : bytes) {
-            sb.append(String.format("%02x", value));
+    private String buildStoredFilename(String contentType) {
+        String extension = "image/png".equals(contentType) ? ".png" : ".jpg";
+        return System.currentTimeMillis() + extension;
+    }
+
+    private String buildObjectPath(UUID userId, String filename) {
+        return userId + "/" + filename;
+    }
+
+    private void deleteStorageObjectIfExists(UUID userId, String filename, String accessToken) {
+        if (filename == null || filename.isBlank()) {
+            return;
         }
-        return sb.toString();
+        try {
+            supabaseClient.deleteStorageObject(profilePhotoBucket, buildObjectPath(userId, filename), accessToken);
+        } catch (ResponseStatusException exception) {
+            if (exception.getStatusCode().value() != HttpStatus.NOT_FOUND.value()) {
+                throw exception;
+            }
+        }
+    }
+
+    private String getCurrentPhotoFilename(UUID userId, String accessToken) {
+        PhotoMetadata metadata = getPhotoMetadata(userId, accessToken);
+        return metadata == null ? null : metadata.filename();
+    }
+
+    private PhotoMetadata getPhotoMetadata(UUID userId, String accessToken) {
+        try {
+            JsonNode response = supabaseClient.callRest(
+                    "/rest/v1/user_profiles?user_id=eq." + userId + "&select=photo_filename,photo_mime_type",
+                    "GET", null, accessToken, false
+            );
+
+            if (!response.isArray() || response.isEmpty()) {
+                return null;
+            }
+
+            JsonNode row = response.get(0);
+            return new PhotoMetadata(
+                    row.path("photo_filename").asText(""),
+                    row.path("photo_mime_type").asText("")
+            );
+        } catch (ResponseStatusException exception) {
+            if (!isMissingTableError(exception)) {
+                throw exception;
+            }
+
+            JsonNode user = supabaseClient.callAuth("/auth/v1/user", "GET", null, accessToken);
+            JsonNode metadata = user.path("user_metadata");
+            return new PhotoMetadata(
+                    metadata.path("photo_filename").asText(""),
+                    metadata.path("photo_mime_type").asText("")
+            );
+        }
     }
 
     private boolean isMissingTableError(ResponseStatusException exception) {
@@ -314,27 +395,6 @@ public class ProfileService {
         if (message == null) return false;
         String normalized = message.toLowerCase();
         return normalized.contains("could not find the table") || normalized.contains("schema cache");
-    }
-
-    private byte[] decodeBytea(String value) {
-        if (value == null || value.isBlank()) {
-            return new byte[0];
-        }
-
-        String normalized = value.trim();
-        if (normalized.startsWith("\\x") || normalized.startsWith("\\\\x")) {
-            String hex = normalized.startsWith("\\\\x") ? normalized.substring(3) : normalized.substring(2);
-            if ((hex.length() % 2) != 0) {
-                throw new IllegalArgumentException("Invalid hex bytea length");
-            }
-            byte[] bytes = new byte[hex.length() / 2];
-            for (int index = 0; index < hex.length(); index += 2) {
-                bytes[index / 2] = (byte) Integer.parseInt(hex.substring(index, index + 2), 16);
-            }
-            return bytes;
-        }
-
-        return Base64.getDecoder().decode(normalized);
     }
 
     private boolean isValidImage(byte[] bytes, String mimeType) {
@@ -350,9 +410,10 @@ public class ProfileService {
         }
     }
 
-    private void clearInvalidProfilePhoto(UUID userId, String accessToken) {
+    private void clearInvalidProfilePhoto(UUID userId, String accessToken, String filename) {
+        deleteStorageObjectIfExists(userId, filename, accessToken);
+
         Map<String, Object> clearPayload = new HashMap<>();
-        clearPayload.put("photo", null);
         clearPayload.put("photo_filename", null);
         clearPayload.put("photo_mime_type", null);
 
@@ -361,8 +422,14 @@ public class ProfileService {
                     "/rest/v1/user_profiles?user_id=eq." + userId,
                     "PATCH", clearPayload, accessToken, false
             );
-        } catch (ResponseStatusException ignored) {
+        } catch (ResponseStatusException exception) {
+            if (isMissingTableError(exception)) {
+                updateAuthMetadata(accessToken, clearPayload);
+            }
         }
+    }
+
+    private record PhotoMetadata(String filename, String mimeType) {
     }
 
     public record ProfilePhoto(byte[] bytes, String mimeType) {

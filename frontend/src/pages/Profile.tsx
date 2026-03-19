@@ -198,6 +198,7 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
     try {
       const response = await uploadPhoto(photoFile);
       setSuccess(`${response.message} (${response.file_reference})`);
+      replacePhotoUrl(URL.createObjectURL(photoFile));
       setPhotoFile(null);
       await loadProfile();
     } catch (requestError) {
@@ -510,6 +511,24 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
                 </p>
               </div>
               <div>
+                <div className="mb-4 flex items-center gap-4 rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-xl font-bold text-white">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt="Current profile"
+                        className="h-full w-full object-cover"
+                        onError={() => replacePhotoUrl(null)}
+                      />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    {photoUrl ? "Current profile photo" : "No profile photo uploaded yet"}
+                  </div>
+                </div>
+
                 <form onSubmit={handleUploadPhoto} className="space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="photo" className="text-sm font-medium text-slate-700">Select Photo</label>

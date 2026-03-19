@@ -186,7 +186,7 @@ Get `access_token` from the Login API.
 ```json
 {
   "message": "Photo uploaded successfully",
-  "file_reference": "9f6f0f04-3b2f-4d17-a616-7df3f2f5b462/profile.png",
+  "file_reference": "profile-photos/9f6f0f04-3b2f-4d17-a616-7df3f2f5b462_1772277600000.jpg",
   "size_bytes": 125430
 }
 ```

@@ -276,3 +276,67 @@ export async function getProfilePhotoBlob(): Promise<Blob | null> {
   const blob = await response.blob();
   return blob.size > 0 ? blob : null;
 }
+
+export interface LoanPayment {
+  payment_id: string;
+  loan_id: string;
+  amount: number;
+  note: string | null;
+  payment_date: string;
+  created_at: string;
+}
+
+export interface Loan {
+  loan_id: string;
+  lender_id: string;
+  borrower_name: string;
+  amount: number;
+  description: string | null;
+  date_lent: string;
+  due_date: string | null;
+  status: "active" | "paid";
+  created_at: string;
+  updated_at: string;
+  loan_payments: LoanPayment[];
+  remaining_balance: number;
+  paid_amount: number;
+}
+
+export interface LoanRequest {
+  borrowerName: string;
+  amount: number;
+  description?: string;
+  dateLent: string;
+  dueDate?: string;
+  status?: string;
+}
+
+export interface LoanPaymentRequest {
+  amount: number;
+  note?: string;
+  paymentDate: string;
+}
+
+export function getLoans(): Promise<Loan[]> {
+  return apiRequest<Loan[]>("/loans", { method: "GET" }, true);
+}
+
+export function createLoan(payload: LoanRequest): Promise<Loan> {
+  return apiRequest<Loan>("/loans", { method: "POST", body: JSON.stringify(payload) }, true);
+}
+
+export function updateLoan(loanId: string, payload: LoanRequest): Promise<Loan> {
+  return apiRequest<Loan>(`/loans/${loanId}`, { method: "PUT", body: JSON.stringify(payload) }, true);
+}
+
+export function deleteLoan(loanId: string): Promise<void> {
+  return apiRequest<void>(`/loans/${loanId}`, { method: "DELETE" }, true);
+}
+
+export function addPayment(loanId: string, payload: LoanPaymentRequest): Promise<LoanPayment> {
+  return apiRequest<LoanPayment>(`/loans/${loanId}/payments`, { method: "POST", body: JSON.stringify(payload) }, true);
+}
+
+export function deletePayment(loanId: string, paymentId: string): Promise<void> {
+  return apiRequest<void>(`/loans/${loanId}/payments/${paymentId}`, { method: "DELETE" }, true);
+}

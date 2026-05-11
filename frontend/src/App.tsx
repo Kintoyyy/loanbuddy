@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { clearAuth, isAuthenticated, subscribeToAuthChanges } from "./auth";
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
+import Loans from "./pages/Loans";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 
-type AppPage = "landing" | "login" | "register" | "dashboard" | "profile";
+type AppPage = "landing" | "login" | "register" | "dashboard" | "profile" | "loans";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
@@ -19,7 +20,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!isLoggedIn && (page === "dashboard" || page === "profile")) {
+    if (!isLoggedIn && (page === "dashboard" || page === "profile" || page === "loans")) {
       setPage("login");
     }
   }, [isLoggedIn, page]);
@@ -60,7 +61,18 @@ function App() {
     return <Profile onBackHome={() => setPage("dashboard")} onLogout={handleLogout} />;
   }
 
-  return <Dashboard onGoProfile={() => setPage("profile")} onLogout={handleLogout} onGoLanding={() => setPage("landing")} />;
+  if (page === "loans") {
+    return (
+      <Loans
+        onGoHome={() => setPage("dashboard")}
+        onGoProfile={() => setPage("profile")}
+        onLogout={handleLogout}
+        onGoLanding={() => setPage("landing")}
+      />
+    );
+  }
+
+  return <Dashboard onGoProfile={() => setPage("profile")} onGoLoans={() => setPage("loans")} onLogout={handleLogout} onGoLanding={() => setPage("landing")} />;
 }
 
 export default App;

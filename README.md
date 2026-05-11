@@ -126,3 +126,7 @@ cd mobile
 
 - This repository currently contains default Supabase values in config files. For production or shared environments, move secrets/URLs to environment variables or secure config.
 - There are two backend codebases (`backend/` and `mobile/backend/`). The primary web API for the React app is in `backend/`.
+
+
+docker compose build
+docker compose up

@@ -324,6 +324,7 @@ public class SupabaseClient {
             Thread.currentThread().interrupt();
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Supabase request interrupted");
         } catch (IOException exception) {
+            LOGGER.error("IOException calling Supabase auth: {} {}", exception.getClass().getName(), exception.getMessage(), exception);
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to reach authentication service. Please try again.");
         }
     }

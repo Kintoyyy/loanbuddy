@@ -8,16 +8,18 @@ import {
   Users,
   CreditCard,
   TrendingUp,
+  Banknote,
 } from "lucide-react";
 import { getProfile, getProfilePhotoBlob, ProfileResponse } from "../api";
 
 interface DashboardProps {
   onGoProfile: () => void;
+  onGoLoans: () => void;
   onLogout: () => void;
   onGoLanding: () => void;
 }
 
-function Dashboard({ onGoProfile, onLogout, onGoLanding }: DashboardProps) {
+function Dashboard({ onGoProfile, onGoLoans, onLogout, onGoLanding }: DashboardProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const displayName = profile?.first_name || profile?.username || "";
@@ -115,6 +117,13 @@ function Dashboard({ onGoProfile, onLogout, onGoLanding }: DashboardProps) {
           <button className="flex w-full items-center gap-3 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900">
             <Home className="h-4 w-4" />
             Home
+          </button>
+          <button
+            onClick={onGoLoans}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+          >
+            <Banknote className="h-4 w-4" />
+            Loans
           </button>
           <button
             onClick={onGoProfile}

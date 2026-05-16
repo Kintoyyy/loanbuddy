@@ -384,11 +384,11 @@ public class SupabaseClient {
     private boolean isJwtAuthError(int statusCode, String message) {
         if (message == null) return statusCode == HttpStatus.UNAUTHORIZED.value();
         String m = message.toLowerCase();
-        return statusCode == HttpStatus.UNAUTHORIZED.value()
-                || statusCode == HttpStatus.FORBIDDEN.value()
-                || m.contains("invalid jwt")
+        boolean hasJwtMessage = m.contains("invalid jwt")
+                || m.contains("jwt expired")
                 || m.contains("token is expired")
                 || m.contains("invalid access token");
+        return statusCode == HttpStatus.UNAUTHORIZED.value() || hasJwtMessage;
     }
 
     private boolean isRateLimitMessage(String message) {

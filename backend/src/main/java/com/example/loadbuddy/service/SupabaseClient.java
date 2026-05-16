@@ -17,11 +17,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SupabaseClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SupabaseClient.class);
+    private static final int SCHEMA_CACHE_MAX_ATTEMPTS = 4;
 
     private final String supabaseUrl;
     private final String anonKey;
@@ -281,42 +283,53 @@ public class SupabaseClient {
 
     private JsonNode execute(String url, String method, Object payload, String bearerToken, boolean returnRepresentation) {
         try {
-            HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", anonKey)
-                    .header("Authorization", "Bearer " + bearerToken)
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json");
+            for (int attempt = 1; attempt <= SCHEMA_CACHE_MAX_ATTEMPTS; attempt++) {
+                HttpRequest.Builder builder = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("apikey", anonKey)
+                        .header("Authorization", "Bearer " + bearerToken)
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "application/json");
 
-            if (returnRepresentation) {
-                builder.header("Prefer", "return=representation");
-            }
-
-            if ("GET".equalsIgnoreCase(method)) {
-                builder.GET();
-            } else {
-                String body = payload == null ? "{}" : objectMapper.writeValueAsString(payload);
-                builder.method(method, HttpRequest.BodyPublishers.ofString(body));
-            }
-
-            HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                String message = extractErrorMessage(response.body());
-                if (isJwtAuthError(response.statusCode(), message)) {
-                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session expired. Please login again.");
+                if (returnRepresentation) {
+                    builder.header("Prefer", "return=representation");
                 }
-                if (isRateLimitMessage(message)) {
-                    throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Email rate limit exceeded. Please wait and retry.");
+
+                if ("GET".equalsIgnoreCase(method)) {
+                    builder.GET();
+                } else {
+                    String body = payload == null ? "{}" : objectMapper.writeValueAsString(payload);
+                    builder.method(method, HttpRequest.BodyPublishers.ofString(body));
                 }
-                throw new ResponseStatusException(mapHttpStatus(response.statusCode()), message);
+
+                HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                    String message = extractErrorMessage(response.body());
+
+                    if (isSchemaCacheMiss(message) && attempt < SCHEMA_CACHE_MAX_ATTEMPTS) {
+                        LOGGER.warn("PostgREST schema cache miss on attempt {}/{} for {} {}. Retrying.", attempt, SCHEMA_CACHE_MAX_ATTEMPTS, method, url);
+                        sleepBeforeRetry(attempt);
+                        continue;
+                    }
+
+                    if (isJwtAuthError(response.statusCode(), message)) {
+                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session expired. Please login again.");
+                    }
+                    if (isRateLimitMessage(message)) {
+                        throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Email rate limit exceeded. Please wait and retry.");
+                    }
+                    throw new ResponseStatusException(mapHttpStatus(response.statusCode()), message);
+                }
+
+                String body = response.body();
+                if (body == null || body.isBlank()) {
+                    return objectMapper.createObjectNode();
+                }
+                return objectMapper.readTree(body);
             }
 
-            String body = response.body();
-            if (body == null || body.isBlank()) {
-                return objectMapper.createObjectNode();
-            }
-            return objectMapper.readTree(body);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Supabase request failed after retries.");
 
         } catch (ResponseStatusException exception) {
             throw exception;
@@ -380,6 +393,28 @@ public class SupabaseClient {
 
     private boolean isRateLimitMessage(String message) {
         return message != null && message.toLowerCase().contains("rate limit exceeded");
+    }
+
+    private boolean isSchemaCacheMiss(String message) {
+        if (message == null) {
+            return false;
+        }
+
+        String normalized = message.toLowerCase();
+        return normalized.contains("schema cache")
+                || normalized.contains("could not find the table")
+                || normalized.contains("could not find the relation")
+                || normalized.contains("not found in the schema cache");
+    }
+
+    private void sleepBeforeRetry(int attempt) {
+        long backoffMs = Math.min(250L * attempt, 1000L);
+        try {
+            TimeUnit.MILLISECONDS.sleep(backoffMs);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Supabase request interrupted");
+        }
     }
 
     private HttpStatus mapHttpStatus(int statusCode) {

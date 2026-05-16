@@ -10,6 +10,7 @@ import {
   LogOut,
   Save,
 } from "lucide-react";
+import AppSidebar from "../components/AppSidebar";
 import {
   ProfileResponse,
   getProfilePhotoBlob,
@@ -21,13 +22,17 @@ import {
 
 interface ProfileProps {
   onBackHome: () => void;
+  onGoLoans: () => void;
+  onGoDebtors: () => void;
+  onGoEntries: () => void;
+  onGoLanding: () => void;
   onLogout: () => void;
 }
 
 const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png"]);
 const STRONG_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,64}$/;
 
-function Profile({ onBackHome, onLogout }: ProfileProps) {
+function Profile({ onBackHome, onGoLoans, onGoDebtors, onGoEntries, onGoLanding, onLogout }: ProfileProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -230,7 +235,18 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50/50">
+      <AppSidebar
+        active="profile"
+        onGoHome={onBackHome}
+        onGoLoans={onGoLoans}
+        onGoDebtors={onGoDebtors}
+        onGoEntries={onGoEntries}
+        onGoProfile={() => {}}
+        onGoLanding={onGoLanding}
+        onLogout={onLogout}
+      />
+      <main className="ml-64 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -554,6 +570,7 @@ function Profile({ onBackHome, onLogout }: ProfileProps) {
           </div>
         )}
       </div>
+      </main>
     </div>
   );
 }

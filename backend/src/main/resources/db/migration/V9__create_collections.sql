@@ -1,3 +1,13 @@
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+    new.updated_at = now();
+    return new;
+end;
+$$;
+
 create table if not exists public.collections (
     collection_id uuid primary key default gen_random_uuid(),
     entry_id uuid not null references public.entries(entry_id) on delete cascade,

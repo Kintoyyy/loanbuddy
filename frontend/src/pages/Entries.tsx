@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Home, LogOut, Plus, Receipt, User, ListChecks, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Receipt, Trash2 } from "lucide-react";
 import {
   createCollection,
   createEntry,
@@ -12,11 +12,14 @@ import {
   getEntries,
   getEntryCollections,
 } from "../api";
+import AppSidebar from "../components/AppSidebar";
 
 interface EntriesProps {
   onGoHome: () => void;
+  onGoLoans: () => void;
   onGoProfile: () => void;
   onGoDebtors: () => void;
+  onGoLanding: () => void;
   onLogout: () => void;
 }
 
@@ -38,7 +41,7 @@ const INITIAL_FORM = {
   notes: "",
 };
 
-function Entries({ onGoHome, onGoProfile, onGoDebtors, onLogout }: EntriesProps) {
+function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoLanding, onLogout }: EntriesProps) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [collectionsByEntry, setCollectionsByEntry] = useState<Record<string, EntryCollection[]>>({});
@@ -201,33 +204,16 @@ function Entries({ onGoHome, onGoProfile, onGoDebtors, onLogout }: EntriesProps)
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-white">
-        <div className="flex h-16 items-center border-b px-6">
-          <span className="text-xl font-bold">Money Tracker</span>
-        </div>
-        <nav className="space-y-1 p-4">
-          <button onClick={onGoHome} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
-            <Home className="h-4 w-4" />
-            Dashboard
-          </button>
-          <button onClick={onGoDebtors} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
-            <User className="h-4 w-4" />
-            Debtors
-          </button>
-          <button className="flex w-full items-center gap-3 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900">
-            <ListChecks className="h-4 w-4" />
-            Entries
-          </button>
-          <button onClick={onGoProfile} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
-            <User className="h-4 w-4" />
-            Profile
-          </button>
-          <button onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
-        </nav>
-      </aside>
+      <AppSidebar
+        active="entries"
+        onGoHome={onGoHome}
+        onGoLoans={onGoLoans}
+        onGoDebtors={onGoDebtors}
+        onGoEntries={() => {}}
+        onGoProfile={onGoProfile}
+        onGoLanding={onGoLanding}
+        onLogout={onLogout}
+      />
 
       <main className="ml-64 p-6">
         <div className="mb-6 flex items-center justify-between">

@@ -60,13 +60,24 @@ function App() {
   }
 
   if (page === "profile") {
-    return <Profile onBackHome={() => setPage("dashboard")} onLogout={handleLogout} />;
+    return (
+      <Profile
+        onBackHome={() => setPage("dashboard")}
+        onGoLoans={() => setPage("loans")}
+        onGoDebtors={() => setPage("debtors")}
+        onGoEntries={() => setPage("entries")}
+        onGoLanding={() => setPage("landing")}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   if (page === "loans") {
     return (
       <Loans
         onGoHome={() => setPage("dashboard")}
+        onGoDebtors={() => setPage("debtors")}
+        onGoEntries={() => setPage("entries")}
         onGoProfile={() => setPage("profile")}
         onLogout={handleLogout}
         onGoLanding={() => setPage("landing")}
@@ -78,8 +89,10 @@ function App() {
     return (
       <Debtors
         onGoHome={() => setPage("dashboard")}
+        onGoLoans={() => setPage("loans")}
         onGoProfile={() => setPage("profile")}
         onGoEntries={() => setPage("entries")}
+        onGoLanding={() => setPage("landing")}
         onLogout={handleLogout}
       />
     );
@@ -89,8 +102,10 @@ function App() {
     return (
       <Entries
         onGoHome={() => setPage("dashboard")}
+        onGoLoans={() => setPage("loans")}
         onGoProfile={() => setPage("profile")}
         onGoDebtors={() => setPage("debtors")}
+        onGoLanding={() => setPage("landing")}
         onLogout={handleLogout}
       />
     );

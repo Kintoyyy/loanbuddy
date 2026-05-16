@@ -1,9 +1,5 @@
 import { useEffect, useState, FormEvent } from "react";
 import {
-  Home,
-  User,
-  Settings,
-  LogOut,
   Banknote,
   Plus,
   Pencil,
@@ -15,6 +11,7 @@ import {
   ChevronUp,
   Receipt,
 } from "lucide-react";
+import AppSidebar from "../components/AppSidebar";
 import {
   getLoans,
   createLoan,
@@ -30,6 +27,8 @@ import {
 
 interface LoansProps {
   onGoHome: () => void;
+  onGoDebtors: () => void;
+  onGoEntries: () => void;
   onGoProfile: () => void;
   onLogout: () => void;
   onGoLanding: () => void;
@@ -38,7 +37,7 @@ interface LoansProps {
 const EMPTY_LOAN_FORM = { borrowerName: "", amount: "", description: "", dateLent: "", dueDate: "" };
 const today = () => new Date().toISOString().split("T")[0];
 
-function Loans({ onGoHome, onGoProfile, onLogout, onGoLanding }: LoansProps) {
+function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onLogout, onGoLanding }: LoansProps) {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -238,29 +237,16 @@ function Loans({ onGoHome, onGoProfile, onLogout, onGoLanding }: LoansProps) {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-white">
-        <div className="flex h-16 items-center border-b px-6">
-          <span className="text-xl font-bold">Dashboard</span>
-        </div>
-        <nav className="space-y-1 p-4">
-          <button onClick={onGoHome} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
-            <Home className="h-4 w-4" /> Home
-          </button>
-          <button className="flex w-full items-center gap-3 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900">
-            <Banknote className="h-4 w-4" /> Loans
-          </button>
-          <button onClick={onGoProfile} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
-            <User className="h-4 w-4" /> Profile
-          </button>
-          <button onClick={onGoLanding} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
-            <Settings className="h-4 w-4" /> Settings
-          </button>
-          <button onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
-            <LogOut className="h-4 w-4" /> Logout
-          </button>
-        </nav>
-      </aside>
+      <AppSidebar
+        active="loans"
+        onGoHome={onGoHome}
+        onGoLoans={() => {}}
+        onGoDebtors={onGoDebtors}
+        onGoEntries={onGoEntries}
+        onGoProfile={onGoProfile}
+        onGoLanding={onGoLanding}
+        onLogout={onLogout}
+      />
 
       {/* Main */}
       <main className="ml-64">

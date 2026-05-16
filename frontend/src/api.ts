@@ -317,6 +317,55 @@ export interface LoanPaymentRequest {
   paymentDate: string;
 }
 
+export interface Debtor {
+  debtor_id: string;
+  user_id: string;
+  debtor_name: string;
+  debtor_type: "Person" | "Entity" | "Organization";
+  phone_number: string | null;
+  email: string | null;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+  total_owed?: number;
+  open_entries_count?: number;
+}
+
+export interface DebtorRequest {
+  debtor_name: string;
+  debtor_type: "Person" | "Entity" | "Organization";
+  phone_number?: string;
+  email?: string;
+}
+
+export interface Entry {
+  entry_id: string;
+  user_id: string;
+  debtor_id: string;
+  debtor_name: string;
+  original_amount: number;
+  currency: string;
+  lending_date: string;
+  expected_payback_date: string | null;
+  actual_closed_date: string | null;
+  entry_status: "Open" | "Partially Collected" | "Closed";
+  is_archived: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  total_collected?: number;
+  still_owed?: number;
+}
+
+export interface EntryRequest {
+  debtor_id: string;
+  original_amount: number;
+  currency?: string;
+  lending_date: string;
+  expected_payback_date?: string;
+  notes?: string;
+}
+
 export function getLoans(): Promise<Loan[]> {
   return apiRequest<Loan[]>("/loans", { method: "GET" }, true);
 }
@@ -339,4 +388,36 @@ export function addPayment(loanId: string, payload: LoanPaymentRequest): Promise
 
 export function deletePayment(loanId: string, paymentId: string): Promise<void> {
   return apiRequest<void>(`/loans/${loanId}/payments/${paymentId}`, { method: "DELETE" }, true);
+}
+
+export function getDebtors(): Promise<Debtor[]> {
+  return apiRequest<Debtor[]>("/debtors", { method: "GET" }, true);
+}
+
+export function createDebtor(payload: DebtorRequest): Promise<Debtor> {
+  return apiRequest<Debtor>("/debtors", { method: "POST", body: JSON.stringify(payload) }, true);
+}
+
+export function updateDebtor(debtorId: string, payload: DebtorRequest): Promise<Debtor> {
+  return apiRequest<Debtor>(`/debtors/${debtorId}`, { method: "PUT", body: JSON.stringify(payload) }, true);
+}
+
+export function archiveDebtor(debtorId: string): Promise<void> {
+  return apiRequest<void>(`/debtors/${debtorId}`, { method: "DELETE" }, true);
+}
+
+export function getEntries(): Promise<Entry[]> {
+  return apiRequest<Entry[]>("/entries", { method: "GET" }, true);
+}
+
+export function createEntry(payload: EntryRequest): Promise<Entry> {
+  return apiRequest<Entry>("/entries", { method: "POST", body: JSON.stringify(payload) }, true);
+}
+
+export function updateEntry(entryId: string, payload: EntryRequest): Promise<Entry> {
+  return apiRequest<Entry>(`/entries/${entryId}`, { method: "PUT", body: JSON.stringify(payload) }, true);
+}
+
+export function archiveEntry(entryId: string): Promise<void> {
+  return apiRequest<void>(`/entries/${entryId}`, { method: "DELETE" }, true);
 }

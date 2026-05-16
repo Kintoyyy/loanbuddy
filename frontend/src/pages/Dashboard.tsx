@@ -9,19 +9,25 @@ import {
   CreditCard,
   TrendingUp,
   Banknote,
+  ListChecks,
 } from "lucide-react";
-import { getProfile, getProfilePhotoBlob, ProfileResponse } from "../api";
+import { getDebtors, getEntries, getProfile, getProfilePhotoBlob, ProfileResponse } from "../api";
 
 interface DashboardProps {
   onGoProfile: () => void;
   onGoLoans: () => void;
+  onGoDebtors: () => void;
+  onGoEntries: () => void;
   onLogout: () => void;
   onGoLanding: () => void;
 }
 
-function Dashboard({ onGoProfile, onGoLoans, onLogout, onGoLanding }: DashboardProps) {
+function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout, onGoLanding }: DashboardProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [debtorCount, setDebtorCount] = useState(0);
+  const [entryCount, setEntryCount] = useState(0);
+  const [outstandingTotal, setOutstandingTotal] = useState(0);
   const displayName = profile?.first_name || profile?.username || "";
   const initials = profile?.first_name?.charAt(0).toUpperCase() || "U";
 
@@ -68,6 +74,20 @@ function Dashboard({ onGoProfile, onGoLoans, onLogout, onGoLanding }: DashboardP
 
     loadDashboardProfile();
 
+    Promise.all([getDebtors(), getEntries()])
+      .then(([debtors, entries]) => {
+        if (!active) return;
+        setDebtorCount(debtors.filter((debtor) => !debtor.is_archived).length);
+        setEntryCount(entries.filter((entry) => !entry.is_archived).length);
+        setOutstandingTotal(
+          entries
+            .filter((entry) => !entry.is_archived)
+            .reduce((sum, entry) => sum + (entry.still_owed ?? entry.original_amount), 0)
+        );
+      })
+      .catch(() => {
+      });
+
     return () => {
       active = false;
       setPhotoUrl((currentUrl) => {
@@ -81,27 +101,27 @@ function Dashboard({ onGoProfile, onGoLoans, onLogout, onGoLanding }: DashboardP
 
   const stats = [
     {
-      title: "Total Users",
-      value: "2,350",
-      change: "+180 from last month",
+      title: "Active Debtors",
+      value: debtorCount.toString(),
+      change: "People/entities who owe you",
       icon: Users,
     },
     {
-      title: "Active Sessions",
-      value: "1,247",
-      change: "+20% from last hour",
-      icon: Activity,
+      title: "Open Entries",
+      value: entryCount.toString(),
+      change: "Current tracked records",
+      icon: ListChecks,
     },
     {
-      title: "Revenue",
-      value: "$45,231",
-      change: "+12% from last month",
-      icon: CreditCard,
+      title: "Outstanding",
+      value: outstandingTotal.toLocaleString(),
+      change: "Total amount still owed",
+      icon: Banknote,
     },
     {
-      title: "Growth",
-      value: "+573",
-      change: "+201 since last week",
+      title: "Tracking Health",
+      value: entryCount > 0 ? "Active" : "Start",
+      change: entryCount > 0 ? "You are tracking entries" : "Create your first entry",
       icon: TrendingUp,
     },
   ];
@@ -124,6 +144,20 @@ function Dashboard({ onGoProfile, onGoLoans, onLogout, onGoLanding }: DashboardP
           >
             <Banknote className="h-4 w-4" />
             Loans
+          </button>
+          <button
+            onClick={onGoDebtors}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+          >
+            <Users className="h-4 w-4" />
+            Debtors
+          </button>
+          <button
+            onClick={onGoEntries}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+          >
+            <ListChecks className="h-4 w-4" />
+            Entries
           </button>
           <button
             onClick={onGoProfile}
@@ -268,17 +302,17 @@ function Dashboard({ onGoProfile, onGoLoans, onLogout, onGoLanding }: DashboardP
                 </button>
                 <button
                   className="inline-flex w-full items-center justify-start rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  onClick={onGoProfile}
+                  onClick={onGoDebtors}
                 >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Change Password
+                  <Users className="mr-2 h-4 w-4" />
+                  Manage Debtors
                 </button>
                 <button
                   className="inline-flex w-full items-center justify-start rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  onClick={onGoProfile}
+                  onClick={onGoEntries}
                 >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Upload Photo
+                  <ListChecks className="mr-2 h-4 w-4" />
+                  Manage Entries
                 </button>
                 <button
                   className="inline-flex w-full items-center justify-start rounded-md border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"

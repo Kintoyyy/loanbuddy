@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { clearAuth, isAuthenticated, subscribeToAuthChanges } from "./auth";
 import Dashboard from "./pages/Dashboard";
+import Debtors from "./pages/Debtors";
+import Entries from "./pages/Entries";
 import Landing from "./pages/Landing";
 import Loans from "./pages/Loans";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 
-type AppPage = "landing" | "login" | "register" | "dashboard" | "profile" | "loans";
+type AppPage = "landing" | "login" | "register" | "dashboard" | "profile" | "loans" | "debtors" | "entries";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
@@ -20,7 +22,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!isLoggedIn && (page === "dashboard" || page === "profile" || page === "loans")) {
+    if (!isLoggedIn && (page === "dashboard" || page === "profile" || page === "loans" || page === "debtors" || page === "entries")) {
       setPage("login");
     }
   }, [isLoggedIn, page]);
@@ -72,7 +74,38 @@ function App() {
     );
   }
 
-  return <Dashboard onGoProfile={() => setPage("profile")} onGoLoans={() => setPage("loans")} onLogout={handleLogout} onGoLanding={() => setPage("landing")} />;
+  if (page === "debtors") {
+    return (
+      <Debtors
+        onGoHome={() => setPage("dashboard")}
+        onGoProfile={() => setPage("profile")}
+        onGoEntries={() => setPage("entries")}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (page === "entries") {
+    return (
+      <Entries
+        onGoHome={() => setPage("dashboard")}
+        onGoProfile={() => setPage("profile")}
+        onGoDebtors={() => setPage("debtors")}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  return (
+    <Dashboard
+      onGoProfile={() => setPage("profile")}
+      onGoLoans={() => setPage("loans")}
+      onGoDebtors={() => setPage("debtors")}
+      onGoEntries={() => setPage("entries")}
+      onLogout={handleLogout}
+      onGoLanding={() => setPage("landing")}
+    />
+  );
 }
 
 export default App;

@@ -246,7 +246,7 @@ function Profile({ onBackHome, onGoLoans, onGoDebtors, onGoEntries, onGoLanding,
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />
-      <main className="ml-64 p-4 md:p-8">
+      <main className="md:ml-64 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

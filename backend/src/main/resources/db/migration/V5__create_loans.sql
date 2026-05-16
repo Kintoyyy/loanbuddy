@@ -1,3 +1,13 @@
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+    new.updated_at = now();
+    return new;
+end;
+$$;
+
 create table if not exists public.loans (
     loan_id       uuid primary key default gen_random_uuid(),
     lender_id     uuid not null references auth.users(id) on delete cascade,
@@ -36,3 +46,5 @@ create policy "Anon users cannot access loans"
     to anon
     using (false)
     with check (false);
+
+notify pgrst, 'reload schema';

@@ -249,7 +249,7 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onLogout, onGo
       />
 
       {/* Main */}
-      <main className="ml-64">
+      <main className="md:ml-64">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-6">
           <div>
             <h1 className="text-lg font-semibold">My Loans</h1>

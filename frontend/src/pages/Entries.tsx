@@ -215,7 +215,7 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoLanding, o
         onLogout={onLogout}
       />
 
-      <main className="ml-64 p-6">
+      <main className="md:ml-64 p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Entries</h1>

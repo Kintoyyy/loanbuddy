@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Banknote, CalendarClock, ListChecks, TrendingUp, User, Users } from "lucide-react";
 import AppSidebar from "../components/AppSidebar";
-import { Debtor, Entry, getDebtors, getEntries, getProfile, getProfilePhotoBlob, ProfileResponse } from "../api";
+import { Debtor, Entry, getDebtors, getEntries, getLoans, getProfile, getProfilePhotoBlob, Loan, ProfileResponse } from "../api";
 
 interface DashboardProps {
   onGoProfile: () => void;
@@ -17,6 +17,9 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout,
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const displayName = profile?.first_name || profile?.username || "";
   const initials = profile?.first_name?.charAt(0).toUpperCase() || "U";
@@ -62,11 +65,12 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout,
       }
     };
 
-    Promise.all([loadDashboardProfile(), getDebtors(), getEntries()])
-      .then(([, debtorResult, entryResult]) => {
+    Promise.all([loadDashboardProfile(), getDebtors(), getEntries(), getLoans()])
+      .then(([, debtorResult, entryResult, loanResult]) => {
         if (!active) return;
         setDebtors(debtorResult);
         setEntries(entryResult);
+        setLoans(loanResult);
       })
       .catch(() => {})
       .finally(() => {
@@ -87,6 +91,7 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout,
 
   const activeDebtors = useMemo(() => debtors.filter((item) => !item.is_archived), [debtors]);
   const activeEntries = useMemo(() => entries.filter((item) => !item.is_archived), [entries]);
+  const activeLoans = useMemo(() => loans, [loans]);
 
   const metrics = useMemo(() => {
     const openEntries = activeEntries.filter((item) => item.entry_status === "Open").length;
@@ -108,6 +113,26 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout,
       recoveryRate,
     };
   }, [activeEntries]);
+
+  const loanMetrics = useMemo(() => {
+    const activeLoansCount = activeLoans.filter((item) => item.status === "active").length;
+    const paidLoansCount = activeLoans.filter((item) => item.status === "paid").length;
+    const overdueLoansCount = activeLoans.filter(
+      (item) => item.status === "active" && item.due_date != null && new Date(item.due_date) < new Date()
+    ).length;
+    const totalLentLoans = activeLoans.reduce((sum, item) => sum + Number(item.amount), 0);
+    const totalPaidLoans = activeLoans.reduce((sum, item) => sum + Number(item.paid_amount ?? 0), 0);
+    const totalOutstandingLoans = activeLoans.reduce((sum, item) => sum + Number(item.remaining_balance ?? item.amount), 0);
+
+    return {
+      activeLoansCount,
+      paidLoansCount,
+      overdueLoansCount,
+      totalLentLoans,
+      totalPaidLoans,
+      totalOutstandingLoans,
+    };
+  }, [activeLoans]);
 
   const monthlySeries = useMemo(() => {
     const now = new Date();
@@ -155,6 +180,38 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout,
     () => [...activeEntries].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5),
     [activeEntries]
   );
+
+  const latestLoans = useMemo(
+    () => [...activeLoans].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5),
+    [activeLoans]
+  );
+
+  useEffect(() => {
+    if (!selectedEntryId && latestEntries.length > 0) {
+      setSelectedEntryId(latestEntries[0].entry_id);
+    }
+  }, [latestEntries, selectedEntryId]);
+
+  useEffect(() => {
+    if (!selectedLoanId && latestLoans.length > 0) {
+      setSelectedLoanId(latestLoans[0].loan_id);
+    }
+  }, [latestLoans, selectedLoanId]);
+
+  const selectedEntry = latestEntries.find((entry) => entry.entry_id === selectedEntryId) ?? latestEntries[0] ?? null;
+  const selectedLoan = latestLoans.find((loan) => loan.loan_id === selectedLoanId) ?? latestLoans[0] ?? null;
+
+  const formatDate = (value: string | null) => {
+    if (!value) {
+      return "—";
+    }
+
+    return new Date(value).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   const summaryCards = [
     {
@@ -349,31 +406,227 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout,
                     ))
                   )}
                 </div>
+
+                <section className="grid gap-4 xl:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-base font-semibold text-slate-900">Loan Snapshot</h2>
+                        <p className="text-xs text-slate-500">Loans are tracked separately from entries because they use payments instead of collections.</p>
+                      </div>
+                      <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                        {loanMetrics.activeLoansCount} active
+                      </span>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl bg-slate-50 px-3 py-3">
+                        <p className="text-xs text-slate-500">Lent</p>
+                        <p className="mt-1 text-lg font-semibold text-slate-900">{loanMetrics.totalLentLoans.toLocaleString()}</p>
+                      </div>
+                      <div className="rounded-xl bg-emerald-50 px-3 py-3">
+                        <p className="text-xs text-emerald-700">Collected</p>
+                        <p className="mt-1 text-lg font-semibold text-emerald-800">{loanMetrics.totalPaidLoans.toLocaleString()}</p>
+                      </div>
+                      <div className="rounded-xl bg-rose-50 px-3 py-3">
+                        <p className="text-xs text-rose-700">Outstanding</p>
+                        <p className="mt-1 text-lg font-semibold text-rose-800">{loanMetrics.totalOutstandingLoans.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {latestLoans.length === 0 ? (
+                        <p className="text-sm text-slate-500">No loans yet.</p>
+                      ) : (
+                        latestLoans.map((loan) => {
+                          const isSelected = selectedLoan?.loan_id === loan.loan_id;
+                          const remaining = Number(loan.remaining_balance ?? loan.amount);
+
+                          return (
+                            <button
+                              key={loan.loan_id}
+                              onClick={() => setSelectedLoanId(loan.loan_id)}
+                              className={`w-full rounded-xl border px-3 py-3 text-left transition ${isSelected ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-medium text-slate-900">{loan.borrower_name}</p>
+                                  <p className="text-xs text-slate-500">
+                                    Lent {formatDate(loan.date_lent)} · {loan.status === "paid" ? "Paid" : "Active"}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold text-slate-900">{remaining.toLocaleString()}</p>
+                                  <p className="text-xs text-slate-500">remaining</p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {selectedLoan && (
+                      <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Loan details</p>
+                            <h3 className="mt-1 text-lg font-semibold text-slate-900">{selectedLoan.borrower_name}</h3>
+                            <p className="text-sm text-slate-500">{selectedLoan.description || "No description provided"}</p>
+                          </div>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${selectedLoan.status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                            {selectedLoan.status === "paid" ? "Paid" : "Active"}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs text-slate-500">Amount lent</p>
+                            <p className="text-sm font-semibold text-slate-900">{Number(selectedLoan.amount).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Paid / Remaining</p>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {Number(selectedLoan.paid_amount ?? 0).toLocaleString()} / {Number(selectedLoan.remaining_balance ?? selectedLoan.amount).toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Date lent</p>
+                            <p className="text-sm font-semibold text-slate-900">{formatDate(selectedLoan.date_lent)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Due date</p>
+                            <p className="text-sm font-semibold text-slate-900">{formatDate(selectedLoan.due_date)}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Payments</p>
+                          <p className="mt-1 text-sm text-slate-700">{selectedLoan.loan_payments.length} payment record(s)</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-base font-semibold text-slate-900">Recent Entries</h2>
+                        <p className="text-xs text-slate-500">Entries capture debtor balances and collections over time.</p>
+                      </div>
+                      <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                        {latestEntries.length} shown
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {latestEntries.length === 0 ? (
+                        <p className="text-sm text-slate-500">No entries yet.</p>
+                      ) : (
+                        latestEntries.map((entry) => {
+                          const isSelected = selectedEntry?.entry_id === entry.entry_id;
+                          const stillOwed = Number(entry.still_owed ?? entry.original_amount);
+
+                          return (
+                            <button
+                              key={entry.entry_id}
+                              onClick={() => setSelectedEntryId(entry.entry_id)}
+                              className={`w-full rounded-xl border px-3 py-3 text-left transition ${isSelected ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-medium text-slate-900">{entry.debtor_name}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {formatDate(entry.lending_date)} · {entry.entry_status}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold text-slate-900">{stillOwed.toLocaleString()}</p>
+                                  <p className="text-xs text-slate-500">owed</p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {selectedEntry && (
+                      <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Entry details</p>
+                            <h3 className="mt-1 text-lg font-semibold text-slate-900">{selectedEntry.debtor_name}</h3>
+                            <p className="text-sm text-slate-500">{selectedEntry.notes || "No notes attached"}</p>
+                          </div>
+                          <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-700">{selectedEntry.entry_status}</span>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs text-slate-500">Original amount</p>
+                            <p className="text-sm font-semibold text-slate-900">{Number(selectedEntry.original_amount).toLocaleString()} {selectedEntry.currency}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Collected / Owed</p>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {Number(selectedEntry.total_collected ?? 0).toLocaleString()} / {Number(selectedEntry.still_owed ?? selectedEntry.original_amount).toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Lending date</p>
+                            <p className="text-sm font-semibold text-slate-900">{formatDate(selectedEntry.lending_date)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Expected payback</p>
+                            <p className="text-sm font-semibold text-slate-900">{formatDate(selectedEntry.expected_payback_date)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
               </div>
             </div>
           </section>
 
           <section className="grid gap-4 xl:grid-cols-5">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-3">
-              <h2 className="text-base font-semibold text-slate-900">Recent Entry Activity</h2>
+              <h2 className="text-base font-semibold text-slate-900">Recent Activity</h2>
+              <p className="mt-1 text-xs text-slate-500">Use the cards above for full details on each loan or entry.</p>
               <div className="mt-3 space-y-2">
                 {loading ? (
                   <p className="text-sm text-slate-500">Loading activity...</p>
-                ) : latestEntries.length === 0 ? (
-                  <p className="text-sm text-slate-500">No entries yet. Add your first entry to start tracking.</p>
+                ) : latestEntries.length === 0 && latestLoans.length === 0 ? (
+                  <p className="text-sm text-slate-500">No activity yet.</p>
                 ) : (
-                  latestEntries.map((entry) => (
-                    <div key={entry.entry_id} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{entry.debtor_name}</p>
-                        <p className="text-xs text-slate-500">{entry.lending_date} · {entry.entry_status}</p>
+                  <>
+                    {latestEntries.slice(0, 3).map((entry) => (
+                      <div key={entry.entry_id} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{entry.debtor_name}</p>
+                          <p className="text-xs text-slate-500">{formatDate(entry.lending_date)} · Entry</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-slate-900">{Number(entry.still_owed ?? entry.original_amount).toLocaleString()}</p>
+                          <p className="text-xs text-slate-500">owed</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-900">{(entry.still_owed ?? entry.original_amount).toLocaleString()}</p>
-                        <p className="text-xs text-slate-500">owed</p>
+                    ))}
+
+                    {latestLoans.slice(0, 3).map((loan) => (
+                      <div key={loan.loan_id} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{loan.borrower_name}</p>
+                          <p className="text-xs text-slate-500">{formatDate(loan.date_lent)} · Loan</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-slate-900">{Number(loan.remaining_balance ?? loan.amount).toLocaleString()}</p>
+                          <p className="text-xs text-slate-500">remaining</p>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </>
                 )}
               </div>
             </div>

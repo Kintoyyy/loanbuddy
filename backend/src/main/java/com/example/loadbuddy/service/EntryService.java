@@ -30,7 +30,7 @@ public class EntryService {
 
     public List<Map<String, Object>> getEntries(String accessToken) {
         JsonNode response = supabaseClient.callRest(
-                "/rest/v1/entries?select=*,debtor:debtors(debtor_name),collections:collections(amount_collected)&is_archived=eq.false&order=created_at.desc",
+                "/rest/v1/entries?select=*,debtor:debtors(debtor_name),collections:collections(amount_collected,is_archived)&is_archived=eq.false&order=created_at.desc",
                 "GET",
                 null,
                 accessToken,
@@ -100,9 +100,13 @@ public class EntryService {
         supabaseClient.callRest("/rest/v1/entries?entry_id=eq." + entryId, "PATCH", payload, accessToken, false);
     }
 
+    public void deleteAllEntries(UUID userId, String accessToken) {
+        supabaseClient.callRest("/rest/v1/entries?user_id=eq." + userId, "DELETE", null, accessToken, false);
+    }
+
     private Map<String, Object> getEntryById(UUID entryId, String accessToken) {
         JsonNode response = supabaseClient.callRest(
-            "/rest/v1/entries?entry_id=eq." + entryId + "&select=*,debtor:debtors(debtor_name),collections:collections(amount_collected)",
+            "/rest/v1/entries?entry_id=eq." + entryId + "&select=*,debtor:debtors(debtor_name),collections:collections(amount_collected,is_archived)",
                 "GET",
                 null,
                 accessToken,
@@ -170,7 +174,9 @@ public class EntryService {
         }
 
         for (JsonNode collectionNode : collectionsNode) {
-            total = total.add(new BigDecimal(collectionNode.path("amount_collected").asText("0")));
+            if (!collectionNode.path("is_archived").asBoolean(false)) {
+                total = total.add(new BigDecimal(collectionNode.path("amount_collected").asText("0")));
+            }
         }
         return total;
     }

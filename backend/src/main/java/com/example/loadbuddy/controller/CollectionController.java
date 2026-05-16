@@ -2,10 +2,14 @@ package com.example.loadbuddy.controller;
 
 import com.example.loadbuddy.model.CollectionRequest;
 import com.example.loadbuddy.service.CollectionService;
+import com.example.loadbuddy.service.ProofService;
 import com.example.loadbuddy.service.SupabaseAuthService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -18,10 +22,12 @@ public class CollectionController {
 
     private final SupabaseAuthService supabaseAuthService;
     private final CollectionService collectionService;
+    private final ProofService proofService;
 
-    public CollectionController(SupabaseAuthService supabaseAuthService, CollectionService collectionService) {
+    public CollectionController(SupabaseAuthService supabaseAuthService, CollectionService collectionService, ProofService proofService) {
         this.supabaseAuthService = supabaseAuthService;
         this.collectionService = collectionService;
+        this.proofService = proofService;
     }
 
     @GetMapping("/entries/{entryId}/collections")
@@ -54,14 +60,41 @@ public class CollectionController {
         return ResponseEntity.ok(collectionService.updateCollection(collectionId, request, token));
     }
 
-    @DeleteMapping("/collections/{collectionId}")
-    public ResponseEntity<Void> deleteCollection(
+    @PatchMapping("/collections/{collectionId}/archive")
+    public ResponseEntity<Void> archiveCollection(
             @RequestHeader(value = "Authorization", required = false) String auth,
+            @PathVariable UUID collectionId,
+            @RequestBody(required = false) Map<String, String> body
+    ) {
+        String token = extractToken(auth);
+        String reason = body != null ? body.get("reason") : null;
+        collectionService.archiveCollection(collectionId, reason, token);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/entries/{entryId}/collections/{collectionId}/proof", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadCollectionProof(
+            @RequestHeader(value = "Authorization", required = false) String auth,
+            @PathVariable UUID entryId,
+            @PathVariable UUID collectionId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        String token = extractToken(auth);
+        proofService.uploadCollectionProof(entryId, collectionId, file, token, collectionService);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/entries/{entryId}/collections/{collectionId}/proof")
+    public ResponseEntity<byte[]> downloadCollectionProof(
+            @RequestHeader(value = "Authorization", required = false) String auth,
+            @PathVariable UUID entryId,
             @PathVariable UUID collectionId
     ) {
         String token = extractToken(auth);
-        collectionService.deleteCollection(collectionId, token);
-        return ResponseEntity.noContent().build();
+        ProofService.ProofDownload proof = proofService.downloadCollectionProof(entryId, collectionId, token);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, proof.mimeType())
+                .body(proof.bytes());
     }
 
     private String extractToken(String authorizationHeader) {

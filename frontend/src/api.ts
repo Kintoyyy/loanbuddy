@@ -283,6 +283,10 @@ export interface LoanPayment {
   amount: number;
   note: string | null;
   payment_date: string;
+  proof_filename: string | null;
+  proof_mime_type: string | null;
+  is_archived: boolean;
+  archive_reason: string | null;
   created_at: string;
 }
 
@@ -295,6 +299,8 @@ export interface Loan {
   date_lent: string;
   due_date: string | null;
   status: "active" | "paid";
+  interest_rate: number;
+  payment_frequency: "none" | "weekly" | "semimonthly" | "monthly" | "quarterly";
   created_at: string;
   updated_at: string;
   loan_payments: LoanPayment[];
@@ -309,6 +315,8 @@ export interface LoanRequest {
   dateLent: string;
   dueDate?: string;
   status?: string;
+  interestRate?: number;
+  paymentFrequency?: string;
 }
 
 export interface LoanPaymentRequest {
@@ -375,6 +383,10 @@ export interface EntryCollection {
   payment_method: "Cash" | "Bank Transfer" | "GCash" | "PayMaya" | "Check" | "Online Transfer" | "Card" | "Other";
   notes: string | null;
   transaction_id: string | null;
+  proof_filename: string | null;
+  proof_mime_type: string | null;
+  is_archived: boolean;
+  archive_reason: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -407,8 +419,21 @@ export function addPayment(loanId: string, payload: LoanPaymentRequest): Promise
   return apiRequest<LoanPayment>(`/loans/${loanId}/payments`, { method: "POST", body: JSON.stringify(payload) }, true);
 }
 
-export function deletePayment(loanId: string, paymentId: string): Promise<void> {
-  return apiRequest<void>(`/loans/${loanId}/payments/${paymentId}`, { method: "DELETE" }, true);
+export function archivePayment(loanId: string, paymentId: string, reason?: string): Promise<void> {
+  return apiRequest<void>(`/loans/${loanId}/payments/${paymentId}/archive`, {
+    method: "PATCH",
+    body: JSON.stringify({ reason: reason ?? "" }),
+  }, true);
+}
+
+export function uploadPaymentProof(loanId: string, paymentId: string, file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiRequest<void>(`/loans/${loanId}/payments/${paymentId}/proof`, { method: "POST", body: form }, true);
+}
+
+export async function getPaymentProof(loanId: string, paymentId: string): Promise<Blob | null> {
+  return fetchProofBlob(`/loans/${loanId}/payments/${paymentId}/proof`);
 }
 
 export function getDebtors(): Promise<Debtor[]> {
@@ -455,6 +480,83 @@ export function updateCollection(collectionId: string, payload: CollectionReques
   return apiRequest<EntryCollection>(`/collections/${collectionId}`, { method: "PUT", body: JSON.stringify(payload) }, true);
 }
 
-export function deleteCollection(collectionId: string): Promise<void> {
-  return apiRequest<void>(`/collections/${collectionId}`, { method: "DELETE" }, true);
+export function archiveCollection(collectionId: string, reason?: string): Promise<void> {
+  return apiRequest<void>(`/collections/${collectionId}/archive`, {
+    method: "PATCH",
+    body: JSON.stringify({ reason: reason ?? "" }),
+  }, true);
+}
+
+export function uploadCollectionProof(entryId: string, collectionId: string, file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiRequest<void>(`/entries/${entryId}/collections/${collectionId}/proof`, { method: "POST", body: form }, true);
+}
+
+export async function getCollectionProof(entryId: string, collectionId: string): Promise<Blob | null> {
+  return fetchProofBlob(`/entries/${entryId}/collections/${collectionId}/proof`);
+}
+
+export function deleteAllLoans(): Promise<void> {
+  return apiRequest<void>("/loans", { method: "DELETE" }, true);
+}
+
+export function deleteAllEntries(): Promise<void> {
+  return apiRequest<void>("/entries", { method: "DELETE" }, true);
+}
+
+export function uploadLoanProof(loanId: string, file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiRequest<void>(`/loans/${loanId}/proof`, { method: "POST", body: form }, true);
+}
+
+export async function getLoanProof(loanId: string): Promise<Blob | null> {
+  return fetchProofBlob(`/loans/${loanId}/proof`);
+}
+
+export function deleteLoanProof(loanId: string): Promise<void> {
+  return apiRequest<void>(`/loans/${loanId}/proof`, { method: "DELETE" }, true);
+}
+
+export function uploadEntryProof(entryId: string, file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiRequest<void>(`/entries/${entryId}/proof`, { method: "POST", body: form }, true);
+}
+
+export async function getEntryProof(entryId: string): Promise<Blob | null> {
+  return fetchProofBlob(`/entries/${entryId}/proof`);
+}
+
+export function deleteEntryProof(entryId: string): Promise<void> {
+  return apiRequest<void>(`/entries/${entryId}/proof`, { method: "DELETE" }, true);
+}
+
+async function fetchProofBlob(endpoint: string): Promise<Blob | null> {
+  const token = getAccessToken();
+  if (!token) {
+    clearAuth();
+    throw new Error("No access token found. Please login first.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: "omit",
+  });
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    const text = await response.text();
+    if (response.status === 401 || response.status === 403) {
+      clearAuth();
+      throw new Error("Session expired. Please login again.");
+    }
+    throw new Error(text || `Request failed with status ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  return blob.size > 0 ? blob : null;
 }

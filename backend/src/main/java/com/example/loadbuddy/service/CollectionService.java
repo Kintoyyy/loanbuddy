@@ -114,6 +114,30 @@ public class CollectionService {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
     }
 
+    public void archiveCollection(UUID collectionId, String reason, String accessToken) {
+        JsonNode existing = supabaseClient.callRest(
+                "/rest/v1/collections?collection_id=eq." + collectionId + "&select=entry_id",
+                "GET", null, accessToken, false
+        );
+        if (!existing.isArray() || existing.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found");
+        }
+        UUID entryId = UUID.fromString(existing.get(0).path("entry_id").asText());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("is_archived", true);
+        if (reason != null && !reason.isBlank()) payload.put("archive_reason", reason.trim());
+        supabaseClient.callRest("/rest/v1/collections?collection_id=eq." + collectionId, "PATCH", payload, accessToken, false);
+        updateEntryStatus(entryId, accessToken);
+    }
+
+    public void saveCollectionProof(UUID collectionId, String filename, String mimeType, String accessToken) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("proof_filename", filename);
+        payload.put("proof_mime_type", mimeType);
+        supabaseClient.callRest("/rest/v1/collections?collection_id=eq." + collectionId, "PATCH", payload, accessToken, false);
+    }
+
     public void deleteCollection(UUID collectionId, String accessToken) {
         JsonNode existing = supabaseClient.callRest(
                 "/rest/v1/collections?collection_id=eq." + collectionId + "&select=entry_id",
@@ -148,7 +172,7 @@ public class CollectionService {
         BigDecimal originalAmount = new BigDecimal(entryResponse.get(0).path("original_amount").asText("0"));
 
         JsonNode collectionsResponse = supabaseClient.callRest(
-                "/rest/v1/collections?entry_id=eq." + entryId + "&select=amount_collected",
+                "/rest/v1/collections?entry_id=eq." + entryId + "&is_archived=eq.false&select=amount_collected",
                 "GET",
                 null,
                 accessToken,

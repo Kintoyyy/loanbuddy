@@ -8,6 +8,7 @@ interface DebtorsProps {
   onGoLoans: () => void;
   onGoProfile: () => void;
   onGoEntries: () => void;
+  onGoSettings: () => void;
   onGoLanding: () => void;
   onLogout: () => void;
 }
@@ -48,7 +49,7 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function Debtors({ onGoHome, onGoLoans, onGoProfile, onGoEntries, onGoLanding, onLogout }: DebtorsProps) {
+function Debtors({ onGoHome, onGoLoans, onGoProfile, onGoEntries, onGoSettings, onGoLanding, onLogout }: DebtorsProps) {
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +156,7 @@ function Debtors({ onGoHome, onGoLoans, onGoProfile, onGoEntries, onGoLanding, o
         onGoDebtors={() => {}}
         onGoEntries={onGoEntries}
         onGoProfile={onGoProfile}
+        onGoSettings={onGoSettings}
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />

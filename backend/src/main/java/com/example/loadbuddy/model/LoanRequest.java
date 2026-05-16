@@ -10,6 +10,8 @@ public class LoanRequest {
     private String dateLent;
     private String dueDate;
     private String status;
+    private BigDecimal interestRate;
+    private String paymentFrequency;
 
     public String getBorrowerName() { return borrowerName; }
     public void setBorrowerName(String borrowerName) { this.borrowerName = borrowerName; }
@@ -28,4 +30,10 @@ public class LoanRequest {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public BigDecimal getInterestRate() { return interestRate; }
+    public void setInterestRate(BigDecimal interestRate) { this.interestRate = interestRate; }
+
+    public String getPaymentFrequency() { return paymentFrequency; }
+    public void setPaymentFrequency(String paymentFrequency) { this.paymentFrequency = paymentFrequency; }
 }

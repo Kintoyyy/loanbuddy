@@ -27,7 +27,7 @@ public class LoanService {
 
     public List<Map<String, Object>> getLoans(String accessToken) {
         JsonNode response = supabaseClient.callRest(
-                "/rest/v1/loans?select=*,loan_payments(payment_id,amount,note,payment_date,created_at)&order=created_at.desc",
+                "/rest/v1/loans?select=*,loan_payments(payment_id,amount,note,payment_date,proof_filename,proof_mime_type,is_archived,archive_reason,created_at)&order=created_at.desc",
                 "GET", null, accessToken, false
         );
 
@@ -60,6 +60,8 @@ public class LoanService {
         payload.put("date_lent", request.getDateLent());
         if (hasValue(request.getDescription())) payload.put("description", request.getDescription().trim());
         if (hasValue(request.getDueDate())) payload.put("due_date", request.getDueDate());
+        payload.put("interest_rate", request.getInterestRate() != null ? request.getInterestRate() : BigDecimal.ZERO);
+        payload.put("payment_frequency", hasValue(request.getPaymentFrequency()) ? request.getPaymentFrequency() : "none");
 
         JsonNode response = supabaseClient.callRest("/rest/v1/loans", "POST", payload, accessToken, true);
         JsonNode row = response.isArray() && !response.isEmpty() ? response.get(0) : response;
@@ -67,6 +69,8 @@ public class LoanService {
         result.put("loan_payments", Collections.emptyList());
         result.put("remaining_balance", request.getAmount());
         result.put("paid_amount", BigDecimal.ZERO);
+        result.putIfAbsent("interest_rate", BigDecimal.ZERO);
+        result.putIfAbsent("payment_frequency", "none");
         return result;
     }
 
@@ -87,12 +91,14 @@ public class LoanService {
         payload.put("description", hasValue(request.getDescription()) ? request.getDescription().trim() : null);
         payload.put("due_date", hasValue(request.getDueDate()) ? request.getDueDate() : null);
         if (request.getStatus() != null) payload.put("status", request.getStatus());
+        if (request.getInterestRate() != null) payload.put("interest_rate", request.getInterestRate());
+        if (hasValue(request.getPaymentFrequency())) payload.put("payment_frequency", request.getPaymentFrequency());
 
         supabaseClient.callRest("/rest/v1/loans?loan_id=eq." + loanId, "PATCH", payload, accessToken, false);
 
         JsonNode response = supabaseClient.callRest(
                 "/rest/v1/loans?loan_id=eq." + loanId
-                        + "&select=*,loan_payments(payment_id,amount,note,payment_date,created_at)",
+                        + "&select=*,loan_payments(payment_id,amount,note,payment_date,proof_filename,proof_mime_type,is_archived,archive_reason,created_at)",
                 "GET", null, accessToken, false
         );
         if (response.isArray() && !response.isEmpty()) {
@@ -109,6 +115,10 @@ public class LoanService {
         supabaseClient.callRest("/rest/v1/loans?loan_id=eq." + loanId, "DELETE", null, accessToken, false);
     }
 
+    public void deleteAllLoans(UUID userId, String accessToken) {
+        supabaseClient.callRest("/rest/v1/loans?lender_id=eq." + userId, "DELETE", null, accessToken, false);
+    }
+
     public Map<String, Object> addPayment(UUID loanId, LoanPaymentRequest request, String accessToken) {
         if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amount must be greater than 0");
@@ -119,7 +129,7 @@ public class LoanService {
         // Fetch loan + existing payments to validate against remaining balance
         JsonNode loanResponse = supabaseClient.callRest(
                 "/rest/v1/loans?loan_id=eq." + loanId
-                        + "&select=amount,loan_payments(amount)",
+                        + "&select=amount,loan_payments(amount,is_archived)",
                 "GET", null, accessToken, false
         );
         if (!loanResponse.isArray() || loanResponse.isEmpty()) {
@@ -144,8 +154,18 @@ public class LoanService {
         return objectMapper.convertValue(row, new TypeReference<>() {});
     }
 
-    public void deletePayment(UUID paymentId, String accessToken) {
-        supabaseClient.callRest("/rest/v1/loan_payments?payment_id=eq." + paymentId, "DELETE", null, accessToken, false);
+    public void archivePayment(UUID paymentId, String reason, String accessToken) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("is_archived", true);
+        if (reason != null && !reason.isBlank()) payload.put("archive_reason", reason.trim());
+        supabaseClient.callRest("/rest/v1/loan_payments?payment_id=eq." + paymentId, "PATCH", payload, accessToken, false);
+    }
+
+    public void savePaymentProof(UUID paymentId, String filename, String mimeType, String accessToken) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("proof_filename", filename);
+        payload.put("proof_mime_type", mimeType);
+        supabaseClient.callRest("/rest/v1/loan_payments?payment_id=eq." + paymentId, "PATCH", payload, accessToken, false);
     }
 
     private BigDecimal computePaid(JsonNode loanNode) {
@@ -153,7 +173,9 @@ public class LoanService {
         JsonNode payments = loanNode.path("loan_payments");
         if (payments.isArray()) {
             for (JsonNode p : payments) {
-                paid = paid.add(new BigDecimal(p.path("amount").asText("0")));
+                if (!p.path("is_archived").asBoolean(false)) {
+                    paid = paid.add(new BigDecimal(p.path("amount").asText("0")));
+                }
             }
         }
         return paid;

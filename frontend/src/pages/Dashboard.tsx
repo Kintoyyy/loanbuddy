@@ -9,11 +9,12 @@ interface DashboardProps {
   onGoLoans: () => void;
   onGoDebtors: () => void;
   onGoEntries: () => void;
+  onGoSettings: () => void;
   onLogout: () => void;
   onGoLanding: () => void;
 }
 
-function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout, onGoLanding }: DashboardProps) {
+function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onGoSettings, onLogout, onGoLanding }: DashboardProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
@@ -163,6 +164,7 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onLogout,
         onGoDebtors={onGoDebtors}
         onGoEntries={onGoEntries}
         onGoProfile={onGoProfile}
+        onGoSettings={onGoSettings}
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />

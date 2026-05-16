@@ -366,6 +366,27 @@ export interface EntryRequest {
   notes?: string;
 }
 
+export interface EntryCollection {
+  collection_id: string;
+  entry_id: string;
+  user_id: string;
+  amount_collected: number;
+  collection_date: string;
+  payment_method: "Cash" | "Bank Transfer" | "GCash" | "PayMaya" | "Check" | "Online Transfer" | "Card" | "Other";
+  notes: string | null;
+  transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionRequest {
+  amount_collected: number;
+  collection_date: string;
+  payment_method?: EntryCollection["payment_method"];
+  notes?: string;
+  transaction_id?: string;
+}
+
 export function getLoans(): Promise<Loan[]> {
   return apiRequest<Loan[]>("/loans", { method: "GET" }, true);
 }
@@ -420,4 +441,20 @@ export function updateEntry(entryId: string, payload: EntryRequest): Promise<Ent
 
 export function archiveEntry(entryId: string): Promise<void> {
   return apiRequest<void>(`/entries/${entryId}`, { method: "DELETE" }, true);
+}
+
+export function getEntryCollections(entryId: string): Promise<EntryCollection[]> {
+  return apiRequest<EntryCollection[]>(`/entries/${entryId}/collections`, { method: "GET" }, true);
+}
+
+export function createCollection(entryId: string, payload: CollectionRequest): Promise<EntryCollection> {
+  return apiRequest<EntryCollection>(`/entries/${entryId}/collections`, { method: "POST", body: JSON.stringify(payload) }, true);
+}
+
+export function updateCollection(collectionId: string, payload: CollectionRequest): Promise<EntryCollection> {
+  return apiRequest<EntryCollection>(`/collections/${collectionId}`, { method: "PUT", body: JSON.stringify(payload) }, true);
+}
+
+export function deleteCollection(collectionId: string): Promise<void> {
+  return apiRequest<void>(`/collections/${collectionId}`, { method: "DELETE" }, true);
 }

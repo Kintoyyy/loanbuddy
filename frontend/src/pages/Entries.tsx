@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  addEntryPenalty,
   archiveCollection,
   archiveEntry,
   createCollection,
@@ -28,11 +29,13 @@ import {
   type Debtor,
   type Entry,
   type EntryCollection,
+  type EntryPenalty,
   type EntryRequest,
 } from "../api";
 import AppSidebar from "../components/AppSidebar";
 import AgreementModal from "../components/AgreementModal";
 import EntryDetailModal from "../components/EntryDetailModal";
+import ProofViewerModal from "../components/ProofViewerModal";
 
 interface EntriesProps {
   onGoHome: () => void;
@@ -60,6 +63,7 @@ interface EntryFormState {
   lending_date: string;
   expected_payback_date: string;
   notes: string;
+  penalty_rate: string;
 }
 
 const TODAY = new Date().toISOString().split("T")[0];
@@ -71,6 +75,7 @@ const INITIAL_FORM: EntryFormState = {
   lending_date: TODAY,
   expected_payback_date: "",
   notes: "",
+  penalty_rate: "",
 };
 
 const INITIAL_COLLECTION_FORM: CollectionFormState = {
@@ -116,6 +121,7 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
   const [collectionSubmitting, setCollectionSubmitting] = useState(false);
   const [collectionForm, setCollectionForm] = useState<CollectionFormState>(INITIAL_COLLECTION_FORM);
   const [collectionProofFile, setCollectionProofFile] = useState<File | null>(null);
+  const [proofViewerBlob, setProofViewerBlob] = useState<Blob | null>(null);
 
   // Filter
   const [statusFilter, setStatusFilter] = useState<"all" | "Open" | "Partially Collected" | "Closed">("all");
@@ -156,6 +162,7 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
       lending_date: form.lending_date,
       expected_payback_date: form.expected_payback_date || undefined,
       notes: form.notes.trim() || undefined,
+      penaltyRate: form.penalty_rate ? Number(form.penalty_rate) : undefined,
     };
 
     setSubmitting(true);
@@ -184,6 +191,7 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
       lending_date: entry.lending_date,
       expected_payback_date: entry.expected_payback_date ?? "",
       notes: entry.notes ?? "",
+      penalty_rate: entry.penalty_rate ? String(entry.penalty_rate) : "",
     });
     setEditFormError(null);
   };
@@ -208,6 +216,7 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
       lending_date: editForm.lending_date,
       expected_payback_date: editForm.expected_payback_date || undefined,
       notes: editForm.notes.trim() || undefined,
+      penaltyRate: editForm.penalty_rate ? Number(editForm.penalty_rate) : undefined,
     };
 
     setEditSubmitting(true);
@@ -324,9 +333,7 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
     try {
       const blob = await getCollectionProof(entryId, collectionId);
       if (!blob) { setError("No proof found for this collection"); return; }
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setProofViewerBlob(blob);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load proof");
     }
@@ -399,6 +406,19 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
             type="date"
             value={f.expected_payback_date}
             onChange={(e) => setF((p) => ({ ...p, expected_payback_date: e.target.value }))}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Overdue Penalty Rate <span className="text-slate-400">(% per month, optional)</span></label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value={f.penalty_rate}
+            onChange={(e) => setF((p) => ({ ...p, penalty_rate: e.target.value }))}
+            placeholder="e.g. 2"
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />
         </div>
@@ -849,7 +869,24 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
           entry={detailEntry}
           lenderName={lenderName}
           onClose={() => setDetailEntry(null)}
+          onPenaltyAdded={(penalty: EntryPenalty) => {
+            setEntries((prev) =>
+              prev.map((e) =>
+                e.entry_id === detailEntry.entry_id
+                  ? {
+                      ...e,
+                      entry_penalties: [...(e.entry_penalties ?? []), penalty],
+                      total_penalties: (e.total_penalties ?? 0) + penalty.amount,
+                    }
+                  : e
+              )
+            );
+          }}
         />
+      )}
+
+      {proofViewerBlob && (
+        <ProofViewerModal blob={proofViewerBlob} onClose={() => setProofViewerBlob(null)} />
       )}
     </div>
   );

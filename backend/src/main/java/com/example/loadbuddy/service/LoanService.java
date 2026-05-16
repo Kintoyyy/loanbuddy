@@ -2,6 +2,7 @@ package com.example.loadbuddy.service;
 
 import com.example.loadbuddy.model.LoanPaymentRequest;
 import com.example.loadbuddy.model.LoanRequest;
+import com.example.loadbuddy.model.PenaltyRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,7 +28,7 @@ public class LoanService {
 
     public List<Map<String, Object>> getLoans(String accessToken) {
         JsonNode response = supabaseClient.callRest(
-                "/rest/v1/loans?select=*,loan_payments(payment_id,amount,note,payment_date,proof_filename,proof_mime_type,is_archived,archive_reason,created_at)&order=created_at.desc",
+                "/rest/v1/loans?select=*,loan_payments(payment_id,amount,note,payment_date,proof_filename,proof_mime_type,is_archived,archive_reason,created_at),loan_penalties(penalty_id,amount,reason,penalty_date,created_at)&order=created_at.desc",
                 "GET", null, accessToken, false
         );
 
@@ -40,6 +41,7 @@ public class LoanService {
             Map<String, Object> loan = objectMapper.convertValue(loanNode, new TypeReference<>() {});
             loan.put("remaining_balance", computeRemaining(loanNode));
             loan.put("paid_amount", computePaid(loanNode));
+            loan.put("total_penalties", computeTotalPenalties(loanNode));
             loans.add(loan);
         }
         return loans;
@@ -62,15 +64,19 @@ public class LoanService {
         if (hasValue(request.getDueDate())) payload.put("due_date", request.getDueDate());
         payload.put("interest_rate", request.getInterestRate() != null ? request.getInterestRate() : BigDecimal.ZERO);
         payload.put("payment_frequency", hasValue(request.getPaymentFrequency()) ? request.getPaymentFrequency() : "none");
+        payload.put("penalty_rate", request.getPenaltyRate() != null ? request.getPenaltyRate() : BigDecimal.ZERO);
 
         JsonNode response = supabaseClient.callRest("/rest/v1/loans", "POST", payload, accessToken, true);
         JsonNode row = response.isArray() && !response.isEmpty() ? response.get(0) : response;
         Map<String, Object> result = objectMapper.convertValue(row, new TypeReference<>() {});
         result.put("loan_payments", Collections.emptyList());
+        result.put("loan_penalties", Collections.emptyList());
         result.put("remaining_balance", request.getAmount());
         result.put("paid_amount", BigDecimal.ZERO);
+        result.put("total_penalties", BigDecimal.ZERO);
         result.putIfAbsent("interest_rate", BigDecimal.ZERO);
         result.putIfAbsent("payment_frequency", "none");
+        result.putIfAbsent("penalty_rate", BigDecimal.ZERO);
         return result;
     }
 
@@ -93,12 +99,13 @@ public class LoanService {
         if (request.getStatus() != null) payload.put("status", request.getStatus());
         if (request.getInterestRate() != null) payload.put("interest_rate", request.getInterestRate());
         if (hasValue(request.getPaymentFrequency())) payload.put("payment_frequency", request.getPaymentFrequency());
+        if (request.getPenaltyRate() != null) payload.put("penalty_rate", request.getPenaltyRate());
 
         supabaseClient.callRest("/rest/v1/loans?loan_id=eq." + loanId, "PATCH", payload, accessToken, false);
 
         JsonNode response = supabaseClient.callRest(
                 "/rest/v1/loans?loan_id=eq." + loanId
-                        + "&select=*,loan_payments(payment_id,amount,note,payment_date,proof_filename,proof_mime_type,is_archived,archive_reason,created_at)",
+                        + "&select=*,loan_payments(payment_id,amount,note,payment_date,proof_filename,proof_mime_type,is_archived,archive_reason,created_at),loan_penalties(penalty_id,amount,reason,penalty_date,created_at)",
                 "GET", null, accessToken, false
         );
         if (response.isArray() && !response.isEmpty()) {
@@ -106,6 +113,7 @@ public class LoanService {
             Map<String, Object> result = objectMapper.convertValue(loanNode, new TypeReference<>() {});
             result.put("remaining_balance", computeRemaining(loanNode));
             result.put("paid_amount", computePaid(loanNode));
+            result.put("total_penalties", computeTotalPenalties(loanNode));
             return result;
         }
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan not found");
@@ -166,6 +174,37 @@ public class LoanService {
         payload.put("proof_filename", filename);
         payload.put("proof_mime_type", mimeType);
         supabaseClient.callRest("/rest/v1/loan_payments?payment_id=eq." + paymentId, "PATCH", payload, accessToken, false);
+    }
+
+    public Map<String, Object> addLoanPenalty(UUID loanId, PenaltyRequest request, String accessToken) {
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amount must be greater than 0");
+        }
+        if (!hasValue(request.getPenaltyDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "penaltyDate is required");
+        }
+        validateDate(request.getPenaltyDate(), "penaltyDate");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("loan_id", loanId.toString());
+        payload.put("amount", request.getAmount());
+        payload.put("penalty_date", request.getPenaltyDate());
+        if (hasValue(request.getReason())) payload.put("reason", request.getReason().trim());
+
+        JsonNode response = supabaseClient.callRest("/rest/v1/loan_penalties", "POST", payload, accessToken, true);
+        JsonNode row = response.isArray() && !response.isEmpty() ? response.get(0) : response;
+        return objectMapper.convertValue(row, new TypeReference<>() {});
+    }
+
+    private BigDecimal computeTotalPenalties(JsonNode loanNode) {
+        BigDecimal total = BigDecimal.ZERO;
+        JsonNode penalties = loanNode.path("loan_penalties");
+        if (penalties.isArray()) {
+            for (JsonNode p : penalties) {
+                total = total.add(new BigDecimal(p.path("amount").asText("0")));
+            }
+        }
+        return total;
     }
 
     private BigDecimal computePaid(JsonNode loanNode) {

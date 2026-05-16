@@ -277,6 +277,30 @@ export async function getProfilePhotoBlob(): Promise<Blob | null> {
   return blob.size > 0 ? blob : null;
 }
 
+export interface LoanPenalty {
+  penalty_id: string;
+  loan_id: string;
+  amount: number;
+  reason: string | null;
+  penalty_date: string;
+  created_at: string;
+}
+
+export interface EntryPenalty {
+  penalty_id: string;
+  entry_id: string;
+  amount: number;
+  reason: string | null;
+  penalty_date: string;
+  created_at: string;
+}
+
+export interface PenaltyRequest {
+  amount: number;
+  reason?: string;
+  penaltyDate: string;
+}
+
 export interface LoanPayment {
   payment_id: string;
   loan_id: string;
@@ -301,11 +325,14 @@ export interface Loan {
   status: "active" | "paid";
   interest_rate: number;
   payment_frequency: "none" | "weekly" | "semimonthly" | "monthly" | "quarterly";
+  penalty_rate: number;
   created_at: string;
   updated_at: string;
   loan_payments: LoanPayment[];
+  loan_penalties: LoanPenalty[];
   remaining_balance: number;
   paid_amount: number;
+  total_penalties: number;
 }
 
 export interface LoanRequest {
@@ -317,6 +344,7 @@ export interface LoanRequest {
   status?: string;
   interestRate?: number;
   paymentFrequency?: string;
+  penaltyRate?: number;
 }
 
 export interface LoanPaymentRequest {
@@ -359,10 +387,13 @@ export interface Entry {
   entry_status: "Open" | "Partially Collected" | "Closed";
   is_archived: boolean;
   notes: string | null;
+  penalty_rate: number;
   created_at: string;
   updated_at: string;
   total_collected?: number;
   still_owed?: number;
+  entry_penalties?: EntryPenalty[];
+  total_penalties?: number;
 }
 
 export interface EntryRequest {
@@ -372,6 +403,7 @@ export interface EntryRequest {
   lending_date: string;
   expected_payback_date?: string;
   notes?: string;
+  penaltyRate?: number;
 }
 
 export interface EntryCollection {
@@ -531,6 +563,14 @@ export async function getEntryProof(entryId: string): Promise<Blob | null> {
 
 export function deleteEntryProof(entryId: string): Promise<void> {
   return apiRequest<void>(`/entries/${entryId}/proof`, { method: "DELETE" }, true);
+}
+
+export function addLoanPenalty(loanId: string, payload: PenaltyRequest): Promise<LoanPenalty> {
+  return apiRequest<LoanPenalty>(`/loans/${loanId}/penalties`, { method: "POST", body: JSON.stringify(payload) }, true);
+}
+
+export function addEntryPenalty(entryId: string, payload: PenaltyRequest): Promise<EntryPenalty> {
+  return apiRequest<EntryPenalty>(`/entries/${entryId}/penalties`, { method: "POST", body: JSON.stringify(payload) }, true);
 }
 
 async function fetchProofBlob(endpoint: string): Promise<Blob | null> {

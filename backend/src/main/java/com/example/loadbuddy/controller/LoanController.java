@@ -2,6 +2,7 @@ package com.example.loadbuddy.controller;
 
 import com.example.loadbuddy.model.LoanPaymentRequest;
 import com.example.loadbuddy.model.LoanRequest;
+import com.example.loadbuddy.model.PenaltyRequest;
 import com.example.loadbuddy.service.LoanService;
 import com.example.loadbuddy.service.ProofService;
 import com.example.loadbuddy.service.SupabaseAuthService;
@@ -93,6 +94,15 @@ public class LoanController {
         String reason = body != null ? body.get("reason") : null;
         loanService.archivePayment(paymentId, reason, token);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{loanId}/penalties")
+    public ResponseEntity<Map<String, Object>> addPenalty(
+            @RequestHeader(value = "Authorization", required = false) String auth,
+            @PathVariable UUID loanId,
+            @RequestBody PenaltyRequest request) {
+        String token = extractToken(auth);
+        return ResponseEntity.status(HttpStatus.CREATED).body(loanService.addLoanPenalty(loanId, request, token));
     }
 
     @PostMapping(value = "/{loanId}/payments/{paymentId}/proof", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

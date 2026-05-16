@@ -1,6 +1,7 @@
 package com.example.loadbuddy.controller;
 
 import com.example.loadbuddy.model.EntryRequest;
+import com.example.loadbuddy.model.PenaltyRequest;
 import com.example.loadbuddy.service.EntryService;
 import com.example.loadbuddy.service.ProofService;
 import com.example.loadbuddy.service.SupabaseAuthService;
@@ -71,6 +72,15 @@ public class EntryController {
         UUID userId = UUID.fromString(supabaseAuthService.getAuthenticatedUserId(token));
         entryService.deleteAllEntries(userId, token);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{entryId}/penalties")
+    public ResponseEntity<Map<String, Object>> addPenalty(
+            @RequestHeader(value = "Authorization", required = false) String auth,
+            @PathVariable UUID entryId,
+            @RequestBody PenaltyRequest request) {
+        String token = extractToken(auth);
+        return ResponseEntity.status(HttpStatus.CREATED).body(entryService.addEntryPenalty(entryId, request, token));
     }
 
     @PostMapping(value = "/{entryId}/proof", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

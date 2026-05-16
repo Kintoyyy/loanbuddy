@@ -1,6 +1,7 @@
 package com.example.loadbuddy.service;
 
 import com.example.loadbuddy.model.EntryRequest;
+import com.example.loadbuddy.model.PenaltyRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +31,7 @@ public class EntryService {
 
     public List<Map<String, Object>> getEntries(String accessToken) {
         JsonNode response = supabaseClient.callRest(
-                "/rest/v1/entries?select=*,debtor:debtors(debtor_name),collections:collections(amount_collected,is_archived)&is_archived=eq.false&order=created_at.desc",
+                "/rest/v1/entries?select=*,debtor:debtors(debtor_name),collections:collections(amount_collected,is_archived),entry_penalties(penalty_id,amount,reason,penalty_date,created_at)&is_archived=eq.false&order=created_at.desc",
                 "GET",
                 null,
                 accessToken,
@@ -51,6 +52,7 @@ public class EntryService {
             entry.put("debtor_name", debtorNode.path("debtor_name").asText(""));
             entry.put("total_collected", totalCollected);
             entry.put("still_owed", stillOwed);
+            entry.put("total_penalties", computeTotalPenalties(node));
             entries.add(entry);
         }
 
@@ -68,6 +70,7 @@ public class EntryService {
         payload.put("lending_date", request.getLending_date());
         payload.put("expected_payback_date", hasValue(request.getExpected_payback_date()) ? request.getExpected_payback_date() : null);
         payload.put("notes", hasValue(request.getNotes()) ? request.getNotes().trim() : null);
+        payload.put("penalty_rate", request.getPenalty_rate() != null ? request.getPenalty_rate() : BigDecimal.ZERO);
 
         JsonNode response = supabaseClient.callRest("/rest/v1/entries", "POST", payload, accessToken, true);
         JsonNode row = response.isArray() && !response.isEmpty() ? response.get(0) : response;
@@ -90,6 +93,7 @@ public class EntryService {
         payload.put("lending_date", request.getLending_date());
         payload.put("expected_payback_date", hasValue(request.getExpected_payback_date()) ? request.getExpected_payback_date() : null);
         payload.put("notes", hasValue(request.getNotes()) ? request.getNotes().trim() : null);
+        if (request.getPenalty_rate() != null) payload.put("penalty_rate", request.getPenalty_rate());
 
         supabaseClient.callRest("/rest/v1/entries?entry_id=eq." + entryId, "PATCH", payload, accessToken, false);
         return getEntryById(entryId, accessToken);
@@ -106,7 +110,7 @@ public class EntryService {
 
     private Map<String, Object> getEntryById(UUID entryId, String accessToken) {
         JsonNode response = supabaseClient.callRest(
-            "/rest/v1/entries?entry_id=eq." + entryId + "&select=*,debtor:debtors(debtor_name),collections:collections(amount_collected,is_archived)",
+            "/rest/v1/entries?entry_id=eq." + entryId + "&select=*,debtor:debtors(debtor_name),collections:collections(amount_collected,is_archived),entry_penalties(penalty_id,amount,reason,penalty_date,created_at)",
                 "GET",
                 null,
                 accessToken,
@@ -122,6 +126,7 @@ public class EntryService {
             entry.put("debtor_name", node.path("debtor").path("debtor_name").asText(""));
             entry.put("total_collected", totalCollected);
             entry.put("still_owed", stillOwed);
+            entry.put("total_penalties", computeTotalPenalties(node));
             return entry;
         }
 
@@ -165,6 +170,37 @@ public class EntryService {
 
     private boolean hasValue(String value) {
         return value != null && !value.isBlank();
+    }
+
+    public Map<String, Object> addEntryPenalty(UUID entryId, PenaltyRequest request, String accessToken) {
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amount must be greater than 0");
+        }
+        if (!hasValue(request.getPenaltyDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "penaltyDate is required");
+        }
+        parseDate(request.getPenaltyDate(), "penaltyDate");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("entry_id", entryId.toString());
+        payload.put("amount", request.getAmount());
+        payload.put("penalty_date", request.getPenaltyDate());
+        if (hasValue(request.getReason())) payload.put("reason", request.getReason().trim());
+
+        JsonNode response = supabaseClient.callRest("/rest/v1/entry_penalties", "POST", payload, accessToken, true);
+        JsonNode row = response.isArray() && !response.isEmpty() ? response.get(0) : response;
+        return objectMapper.convertValue(row, new TypeReference<>() {});
+    }
+
+    private BigDecimal computeTotalPenalties(JsonNode entryNode) {
+        BigDecimal total = BigDecimal.ZERO;
+        JsonNode penalties = entryNode.path("entry_penalties");
+        if (penalties.isArray()) {
+            for (JsonNode p : penalties) {
+                total = total.add(new BigDecimal(p.path("amount").asText("0")));
+            }
+        }
+        return total;
     }
 
     private BigDecimal computeTotalCollected(JsonNode collectionsNode) {

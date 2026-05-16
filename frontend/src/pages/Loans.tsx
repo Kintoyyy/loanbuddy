@@ -20,6 +20,7 @@ import {
 import AppSidebar from "../components/AppSidebar";
 import AgreementModal from "../components/AgreementModal";
 import LoanDetailModal from "../components/LoanDetailModal";
+import ProofViewerModal from "../components/ProofViewerModal";
 import {
   getLoans,
   createLoan,
@@ -27,6 +28,7 @@ import {
   deleteLoan,
   addPayment,
   archivePayment,
+  getPaymentProof,
   uploadPaymentProof,
   uploadLoanProof,
   getProfile,
@@ -46,7 +48,7 @@ interface LoansProps {
   onGoLanding: () => void;
 }
 
-const EMPTY_LOAN_FORM = { borrowerName: "", amount: "", description: "", dateLent: "", dueDate: "", interestRate: "", paymentFrequency: "none" };
+const EMPTY_LOAN_FORM = { borrowerName: "", amount: "", description: "", dateLent: "", dueDate: "", interestRate: "", paymentFrequency: "none", penaltyRate: "" };
 const today = () => new Date().toISOString().split("T")[0];
 
 function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, onLogout, onGoLanding }: LoansProps) {
@@ -70,6 +72,7 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
   const [lenderName, setLenderName] = useState("Lender");
   const [agreementLoan, setAgreementLoan] = useState<Loan | null>(null);
   const [detailLoan, setDetailLoan] = useState<Loan | null>(null);
+  const [proofViewerBlob, setProofViewerBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     getProfile().then((p) => setLenderName(`${p.first_name} ${p.last_name}`.trim() || p.email)).catch(() => {});
@@ -115,6 +118,7 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
       dueDate: loan.due_date ?? "",
       interestRate: loan.interest_rate != null && Number(loan.interest_rate) > 0 ? String(loan.interest_rate) : "",
       paymentFrequency: loan.payment_frequency ?? "none",
+      penaltyRate: loan.penalty_rate != null && Number(loan.penalty_rate) > 0 ? String(loan.penalty_rate) : "",
     });
     setLoanFormError(null);
     setShowLoanForm(true);
@@ -138,6 +142,7 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
     setLoanFormError(null);
 
     const parsedRate = parseFloat(loanForm.interestRate);
+    const parsedPenaltyRate = parseFloat(loanForm.penaltyRate);
     const payload: LoanRequest = {
       borrowerName: loanForm.borrowerName.trim(),
       amount: parsedAmount,
@@ -146,6 +151,7 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
       dueDate: loanForm.dueDate || undefined,
       interestRate: isNaN(parsedRate) || parsedRate < 0 ? 0 : parsedRate,
       paymentFrequency: loanForm.paymentFrequency || "none",
+      penaltyRate: isNaN(parsedPenaltyRate) || parsedPenaltyRate < 0 ? 0 : parsedPenaltyRate,
     };
 
     try {
@@ -182,6 +188,7 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
         status: newStatus,
         interestRate: Number(loan.interest_rate ?? 0),
         paymentFrequency: loan.payment_frequency ?? "none",
+        penaltyRate: Number(loan.penalty_rate ?? 0),
       });
       setLoans((prev) => prev.map((l) => l.loan_id === updated.loan_id ? updated : l));
     } catch (err) {
@@ -260,6 +267,15 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
       }));
     } catch (err) {
       setPageError(err instanceof Error ? err.message : "Failed to archive payment");
+    }
+  };
+
+  const handleViewPaymentProof = async (loanId: string, paymentId: string) => {
+    try {
+      const blob = await getPaymentProof(loanId, paymentId);
+      if (blob) setProofViewerBlob(blob);
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : "Failed to load proof");
     }
   };
 
@@ -445,6 +461,25 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
                   </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Overdue Penalty Rate <span className="text-slate-400">(% per month, optional)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={loanForm.penaltyRate}
+                      onChange={(e) => setLoanForm({ ...loanForm, penaltyRate: e.target.value })}
+                      placeholder="0.00"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 pr-8 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">Applied on remaining balance per month overdue</p>
                 </div>
                 <div className="md:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700">Description <span className="text-slate-400">(optional)</span></label>
@@ -660,7 +695,12 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
                                         <td className="px-4 py-2.5 text-slate-500">{p.note || <span className="text-slate-300">—</span>}</td>
                                         <td className="px-4 py-2.5">
                                           {p.proof_filename ? (
-                                            <span className="inline-flex items-center gap-1 text-xs text-sky-600"><Paperclip className="h-3 w-3" />Receipt</span>
+                                            <button
+                                              onClick={() => handleViewPaymentProof(loan.loan_id, p.payment_id)}
+                                              className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs text-sky-600 hover:bg-sky-50"
+                                            >
+                                              <Paperclip className="h-3 w-3" />Receipt
+                                            </button>
                                           ) : (
                                             <span className="text-slate-300 text-xs">—</span>
                                           )}
@@ -790,7 +830,18 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
           loan={detailLoan}
           lenderName={lenderName}
           onClose={() => setDetailLoan(null)}
+          onPenaltyAdded={(penalty) => {
+            setLoans((prev) => prev.map((l) =>
+              l.loan_id === detailLoan.loan_id
+                ? { ...l, loan_penalties: [...(l.loan_penalties ?? []), penalty], total_penalties: (Number(l.total_penalties) || 0) + Number(penalty.amount) }
+                : l
+            ));
+          }}
         />
+      )}
+
+      {proofViewerBlob && (
+        <ProofViewerModal blob={proofViewerBlob} onClose={() => setProofViewerBlob(null)} />
       )}
     </div>
   );

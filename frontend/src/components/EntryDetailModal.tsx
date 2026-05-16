@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
-import { FileText, Lock, Paperclip, Printer, X } from "lucide-react";
-import { type Entry, type EntryCollection, getCollectionProof, getEntryCollections, getEntryProof } from "../api";
+import { AlertTriangle, FileText, Lock, Paperclip, Plus, Printer, X } from "lucide-react";
+import {
+  addEntryPenalty,
+  type Entry,
+  type EntryCollection,
+  type EntryPenalty,
+  type PenaltyRequest,
+  getCollectionProof,
+  getEntryCollections,
+  getEntryProof,
+} from "../api";
 import { getAgreementSettings } from "../settingsStore";
+import ProofViewerModal from "./ProofViewerModal";
 
 interface Props {
   entry: Entry;
   lenderName: string;
   onClose: () => void;
+  onPenaltyAdded?: (penalty: EntryPenalty) => void;
 }
 
 function fmtDate(d: string | null | undefined) {
@@ -93,12 +104,26 @@ const STATUS_COLORS: Record<string, string> = {
   Closed: "bg-emerald-100 text-emerald-700",
 };
 
-export default function EntryDetailModal({ entry, lenderName, onClose }: Props) {
+const TODAY = new Date().toISOString().split("T")[0];
+
+export default function EntryDetailModal({ entry, lenderName, onClose, onPenaltyAdded }: Props) {
   const [collections, setCollections] = useState<EntryCollection[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(true);
   const [proofDataUrl, setProofDataUrl] = useState<string | null>(null);
   const [proofLoading, setProofLoading] = useState(true);
   const [additionalTerms, setAdditionalTerms] = useState("");
+  const [proofViewerBlob, setProofViewerBlob] = useState<Blob | null>(null);
+
+  // Penalties
+  const [penalties, setPenalties] = useState<EntryPenalty[]>(entry.entry_penalties ?? []);
+  const [showPenaltyForm, setShowPenaltyForm] = useState(false);
+  const [penaltyForm, setPenaltyForm] = useState<{ amount: string; penaltyDate: string; reason: string }>({
+    amount: "",
+    penaltyDate: TODAY,
+    reason: "",
+  });
+  const [penaltySubmitting, setPenaltySubmitting] = useState(false);
+  const [penaltyError, setPenaltyError] = useState<string | null>(null);
 
   useEffect(() => {
     const s = getAgreementSettings();
@@ -122,11 +147,22 @@ export default function EntryDetailModal({ entry, lenderName, onClose }: Props) 
 
   const originalAmount = Number(entry.original_amount);
   const collected = entry.total_collected ?? 0;
-  const stillOwed = entry.still_owed ?? originalAmount;
-  const collectedPct = originalAmount > 0 ? Math.round((collected / originalAmount) * 100) : 0;
+  const totalManualPenalties = penalties.reduce((s, p) => s + Number(p.amount), 0);
+  const stillOwed = Math.max(0, (entry.still_owed ?? originalAmount) + totalManualPenalties);
+  const collectedPct = originalAmount > 0 ? Math.min(100, Math.round((collected / (originalAmount + totalManualPenalties)) * 100)) : 0;
   const isOverdue = entry.entry_status !== "Closed"
     && entry.expected_payback_date != null
     && new Date(entry.expected_payback_date) < new Date();
+
+  const penaltyRate = entry.penalty_rate ?? 0;
+  let autoPenaltyEstimate = 0;
+  if (isOverdue && penaltyRate > 0) {
+    const dueDate = new Date(entry.expected_payback_date!);
+    const now = new Date();
+    const monthsOverdue = Math.max(0, (now.getFullYear() - dueDate.getFullYear()) * 12 + (now.getMonth() - dueDate.getMonth()));
+    const remainingBalance = entry.still_owed ?? originalAmount;
+    autoPenaltyEstimate = remainingBalance * (penaltyRate / 100) * monthsOverdue;
+  }
 
   const settings = getAgreementSettings();
   const effectiveLenderName = settings.lenderNameOverride.trim() || lenderName;
@@ -147,11 +183,39 @@ export default function EntryDetailModal({ entry, lenderName, onClose }: Props) 
     try {
       const blob = await getCollectionProof(entry.entry_id, collectionId);
       if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setProofViewerBlob(blob);
     } catch {
       // silently ignore
+    }
+  };
+
+  const handleAddPenalty = async () => {
+    const amount = Number(penaltyForm.amount);
+    if (!penaltyForm.amount || !Number.isFinite(amount) || amount <= 0) {
+      setPenaltyError("Amount must be greater than 0");
+      return;
+    }
+    if (!penaltyForm.penaltyDate) {
+      setPenaltyError("Date is required");
+      return;
+    }
+    setPenaltySubmitting(true);
+    setPenaltyError(null);
+    try {
+      const payload: PenaltyRequest = {
+        amount,
+        penaltyDate: penaltyForm.penaltyDate,
+        reason: penaltyForm.reason.trim() || undefined,
+      };
+      const created = await addEntryPenalty(entry.entry_id, payload);
+      setPenalties((prev) => [...prev, created]);
+      onPenaltyAdded?.(created);
+      setPenaltyForm({ amount: "", penaltyDate: TODAY, reason: "" });
+      setShowPenaltyForm(false);
+    } catch (err) {
+      setPenaltyError(err instanceof Error ? err.message : "Failed to add penalty");
+    } finally {
+      setPenaltySubmitting(false);
     }
   };
 
@@ -235,6 +299,7 @@ export default function EntryDetailModal({ entry, lenderName, onClose }: Props) 
               <div><dt className="text-[11px] text-slate-400">Lender</dt><dd className="font-medium text-slate-800">{effectiveLenderName}</dd></div>
               <div><dt className="text-[11px] text-slate-400">Debtor</dt><dd className="font-medium text-slate-800">{entry.debtor_name}</dd></div>
               <div><dt className="text-[11px] text-slate-400">Currency</dt><dd className="font-medium text-slate-800">{entry.currency}</dd></div>
+              <div><dt className="text-[11px] text-slate-400">Penalty Rate</dt><dd className="font-medium text-slate-800">{penaltyRate > 0 ? `${penaltyRate}% / month` : "—"}</dd></div>
               <div><dt className="text-[11px] text-slate-400">Collections</dt><dd className="font-medium text-slate-800">{collections.length} record{collections.length !== 1 ? "s" : ""}</dd></div>
               {entry.notes && (
                 <div className="col-span-2">
@@ -268,6 +333,107 @@ export default function EntryDetailModal({ entry, lenderName, onClose }: Props) 
               </div>
             ) : (
               <p className="text-sm text-slate-400">No signature or proof recorded for this entry.</p>
+            )}
+          </div>
+
+          {/* Penalties section */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Penalties</p>
+              <button
+                onClick={() => { setShowPenaltyForm((v) => !v); setPenaltyError(null); }}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <Plus className="h-3 w-3" /> Add Penalty
+              </button>
+            </div>
+
+            {isOverdue && penaltyRate > 0 && autoPenaltyEstimate > 0 && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Auto-penalty estimate: <strong>{entry.currency} {fmtAmt(autoPenaltyEstimate)}</strong> ({penaltyRate}%/mo × overdue months).
+                  Add a manual penalty below to record it officially.
+                </span>
+              </div>
+            )}
+
+            {penalties.length === 0 ? (
+              <p className="text-sm text-slate-400">No penalties recorded.</p>
+            ) : (
+              <div className="mb-3 overflow-hidden rounded-lg border border-slate-100">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                      <th className="px-3 py-2">Date</th>
+                      <th className="px-3 py-2">Amount</th>
+                      <th className="px-3 py-2">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {penalties.map((p) => (
+                      <tr key={p.penalty_id}>
+                        <td className="px-3 py-2 text-slate-600">{fmtDate(p.penalty_date)}</td>
+                        <td className="px-3 py-2 font-semibold text-rose-600">{entry.currency} {fmtAmt(Number(p.amount))}</td>
+                        <td className="px-3 py-2 text-slate-500">{p.reason || <span className="text-slate-300">—</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {showPenaltyForm && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+                {penaltyError && (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">{penaltyError}</p>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Amount *</label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={penaltyForm.amount}
+                      onChange={(e) => setPenaltyForm((p) => ({ ...p, amount: e.target.value }))}
+                      placeholder="0.00"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Date *</label>
+                    <input
+                      type="date"
+                      value={penaltyForm.penaltyDate}
+                      onChange={(e) => setPenaltyForm((p) => ({ ...p, penaltyDate: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={penaltyForm.reason}
+                  onChange={(e) => setPenaltyForm((p) => ({ ...p, reason: e.target.value }))}
+                  placeholder="Reason (optional)"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+                />
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => { setShowPenaltyForm(false); setPenaltyError(null); }}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddPenalty}
+                    disabled={penaltySubmitting}
+                    className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+                  >
+                    {penaltySubmitting ? "Saving…" : "Save Penalty"}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -325,6 +491,10 @@ export default function EntryDetailModal({ entry, lenderName, onClose }: Props) 
           </div>
         </div>
       </div>
+
+      {proofViewerBlob && (
+        <ProofViewerModal blob={proofViewerBlob} onClose={() => setProofViewerBlob(null)} />
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ public class EntryRequest {
     private String lending_date;
     private String expected_payback_date;
     private String notes;
+    private BigDecimal penalty_rate;
 
     public String getDebtor_id() {
         return debtor_id;
@@ -57,5 +58,13 @@ public class EntryRequest {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public BigDecimal getPenalty_rate() {
+        return penalty_rate;
+    }
+
+    public void setPenalty_rate(BigDecimal penalty_rate) {
+        this.penalty_rate = penalty_rate;
     }
 }

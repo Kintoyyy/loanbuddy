@@ -12,6 +12,7 @@ public class LoanRequest {
     private String status;
     private BigDecimal interestRate;
     private String paymentFrequency;
+    private BigDecimal penaltyRate;
 
     public String getBorrowerName() { return borrowerName; }
     public void setBorrowerName(String borrowerName) { this.borrowerName = borrowerName; }
@@ -36,4 +37,7 @@ public class LoanRequest {
 
     public String getPaymentFrequency() { return paymentFrequency; }
     public void setPaymentFrequency(String paymentFrequency) { this.paymentFrequency = paymentFrequency; }
+
+    public BigDecimal getPenaltyRate() { return penaltyRate; }
+    public void setPenaltyRate(BigDecimal penaltyRate) { this.penaltyRate = penaltyRate; }
 }

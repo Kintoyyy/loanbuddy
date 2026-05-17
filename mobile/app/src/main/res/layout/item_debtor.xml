@@ -24,7 +24,7 @@
             android:id="@+id/avatar"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="@color/sky_100"
+            android:background="@drawable/bg_avatar_circle"
             android:gravity="center"
             android:textColor="@color/sky_700"
             android:textSize="18sp"

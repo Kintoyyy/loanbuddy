@@ -86,6 +86,15 @@ class EntriesActivity : AppCompatActivity() {
     private fun setFilter(f: String) {
         filter = f
         applyFilter()
+        listOf(
+            binding.filterAll to "all",
+            binding.filterOpen to "open",
+            binding.filterPartial to "partial",
+            binding.filterClosed to "closed"
+        ).forEach { (btn, key) ->
+            btn.setBackgroundColor(if (key == filter) getColor(R.color.zinc_900) else android.graphics.Color.TRANSPARENT)
+            btn.setTextColor(if (key == filter) getColor(R.color.white) else getColor(R.color.zinc_500))
+        }
     }
 
     private fun applyFilter() {

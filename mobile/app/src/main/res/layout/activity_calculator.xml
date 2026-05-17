@@ -22,10 +22,10 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/zinc_900"
+            android:background="@color/bg_card"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
-            android:paddingTop="48dp"
+            android:paddingTop="52dp"
             android:paddingBottom="20dp">
 
             <LinearLayout
@@ -36,21 +36,21 @@
 
                 <ImageButton
                     android:id="@+id/back_button"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/ic_arrow_left"
                     android:contentDescription="Back"
-                    app:tint="@color/white" />
+                    app:tint="@color/zinc_900" />
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="12dp"
                     android:text="@string/calculator_title"
-                    android:textColor="@color/white"
-                    android:textSize="20sp"
+                    android:textColor="@color/zinc_900"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -59,25 +59,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:background="@color/zinc_800"
+                android:background="@color/zinc_100"
                 android:orientation="horizontal"
                 android:padding="4dp">
 
                 <Button
                     android:id="@+id/tab_simple"
                     android:layout_width="0dp"
-                    android:layout_height="36dp"
+                    android:layout_height="34dp"
                     android:layout_weight="1"
                     android:backgroundTint="@color/zinc_900"
                     android:text="Simple"
                     android:textColor="@color/white"
                     android:textSize="12sp"
+                    android:textStyle="bold"
                     style="@style/Widget.MaterialComponents.Button" />
 
                 <Button
                     android:id="@+id/tab_compound"
                     android:layout_width="0dp"
-                    android:layout_height="36dp"
+                    android:layout_height="34dp"
                     android:layout_weight="1"
                     android:layout_marginHorizontal="4dp"
                     android:backgroundTint="@android:color/transparent"
@@ -89,7 +90,7 @@
                 <Button
                     android:id="@+id/tab_emi"
                     android:layout_width="0dp"
-                    android:layout_height="36dp"
+                    android:layout_height="34dp"
                     android:layout_weight="1"
                     android:backgroundTint="@android:color/transparent"
                     android:text="EMI"
@@ -201,13 +202,14 @@
             <Button
                 android:id="@+id/calculate_button"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="50dp"
                 android:layout_marginTop="20dp"
                 android:backgroundTint="@color/zinc_900"
                 android:text="@string/calculate"
                 android:textColor="@color/white"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textSize="14sp"
+                android:textStyle="bold"
+                style="@style/Widget.MaterialComponents.Button" />
 
             <!-- Result card -->
             <com.google.android.material.card.MaterialCardView

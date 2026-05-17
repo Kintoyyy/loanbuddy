@@ -20,11 +20,11 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/zinc_900"
+            android:background="@color/bg_card"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
             android:paddingTop="52dp"
-            android:paddingBottom="24dp">
+            android:paddingBottom="20dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -39,7 +39,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/ic_arrow_left"
                     android:contentDescription="Back"
-                    app:tint="@color/white" />
+                    app:tint="@color/zinc_900" />
 
                 <TextView
                     android:layout_width="0dp"
@@ -47,7 +47,7 @@
                     android:layout_weight="1"
                     android:layout_marginStart="12dp"
                     android:text="@string/debtors_title"
-                    android:textColor="@color/white"
+                    android:textColor="@color/zinc_900"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -61,7 +61,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="14dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -71,16 +71,16 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="0 debtors"
-                    android:textColor="@color/zinc_400"
+                    android:textColor="@color/zinc_500"
                     android:textSize="13sp" />
 
                 <Button
                     android:id="@+id/toggle_archived"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:backgroundTint="@color/zinc_800"
+                    android:layout_height="34dp"
+                    android:backgroundTint="@color/zinc_100"
                     android:text="Show Archived"
-                    android:textColor="@color/zinc_300"
+                    android:textColor="@color/zinc_700"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     style="@style/Widget.MaterialComponents.Button" />

@@ -1,6 +1,6 @@
-import { Banknote, Home, ListChecks, LogOut, Settings, Sparkles, User, Users } from "lucide-react";
+import { Banknote, Calculator, Home, ListChecks, LogOut, Settings, Sparkles, User, Users } from "lucide-react";
 
-type SidebarKey = "dashboard" | "loans" | "debtors" | "entries" | "profile" | "settings";
+type SidebarKey = "dashboard" | "loans" | "debtors" | "entries" | "profile" | "settings" | "calculator";
 
 interface AppSidebarProps {
   active: SidebarKey;
@@ -10,6 +10,7 @@ interface AppSidebarProps {
   onGoEntries: () => void;
   onGoProfile: () => void;
   onGoSettings: () => void;
+  onGoCalculator: () => void;
   onGoLanding: () => void;
   onLogout: () => void;
 }
@@ -38,6 +39,7 @@ function AppSidebar({
   onGoEntries,
   onGoProfile,
   onGoSettings,
+  onGoCalculator,
   onGoLanding,
   onLogout,
 }: AppSidebarProps) {
@@ -68,6 +70,10 @@ function AppSidebar({
           <button onClick={onGoEntries} className={navButtonClass(active === "entries")}>
             <ListChecks className="h-4 w-4" />
             Entries
+          </button>
+          <button onClick={onGoCalculator} className={navButtonClass(active === "calculator")}>
+            <Calculator className="h-4 w-4" />
+            Calculator
           </button>
           <button onClick={onGoProfile} className={navButtonClass(active === "profile")}>
             <User className="h-4 w-4" />
@@ -106,6 +112,10 @@ function AppSidebar({
           <button onClick={onGoEntries} className={mobileNavButtonClass(active === "entries")}>
             <ListChecks className="h-4 w-4" />
             Entries
+          </button>
+          <button onClick={onGoCalculator} className={mobileNavButtonClass(active === "calculator")}>
+            <Calculator className="h-4 w-4" />
+            Calc
           </button>
           <button onClick={onGoProfile} className={mobileNavButtonClass(active === "profile")}>
             <User className="h-4 w-4" />

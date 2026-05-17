@@ -44,6 +44,7 @@ interface LoansProps {
   onGoEntries: () => void;
   onGoProfile: () => void;
   onGoSettings: () => void;
+  onGoCalculator: () => void;
   onLogout: () => void;
   onGoLanding: () => void;
 }
@@ -51,7 +52,7 @@ interface LoansProps {
 const EMPTY_LOAN_FORM = { borrowerName: "", amount: "", description: "", dateLent: "", dueDate: "", interestRate: "", paymentFrequency: "none", penaltyRate: "" };
 const today = () => new Date().toISOString().split("T")[0];
 
-function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, onLogout, onGoLanding }: LoansProps) {
+function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, onGoCalculator, onLogout, onGoLanding }: LoansProps) {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -302,6 +303,7 @@ function Loans({ onGoHome, onGoDebtors, onGoEntries, onGoProfile, onGoSettings, 
         onGoEntries={onGoEntries}
         onGoProfile={onGoProfile}
         onGoSettings={onGoSettings}
+        onGoCalculator={onGoCalculator}
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />

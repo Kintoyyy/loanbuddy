@@ -9,6 +9,7 @@ interface DebtorsProps {
   onGoProfile: () => void;
   onGoEntries: () => void;
   onGoSettings: () => void;
+  onGoCalculator: () => void;
   onGoLanding: () => void;
   onLogout: () => void;
 }
@@ -49,7 +50,7 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function Debtors({ onGoHome, onGoLoans, onGoProfile, onGoEntries, onGoSettings, onGoLanding, onLogout }: DebtorsProps) {
+function Debtors({ onGoHome, onGoLoans, onGoProfile, onGoEntries, onGoSettings, onGoCalculator, onGoLanding, onLogout }: DebtorsProps) {
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +158,7 @@ function Debtors({ onGoHome, onGoLoans, onGoProfile, onGoEntries, onGoSettings, 
         onGoEntries={onGoEntries}
         onGoProfile={onGoProfile}
         onGoSettings={onGoSettings}
+        onGoCalculator={onGoCalculator}
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />

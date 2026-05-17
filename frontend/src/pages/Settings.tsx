@@ -10,12 +10,13 @@ interface Props {
   onGoDebtors: () => void;
   onGoEntries: () => void;
   onGoProfile: () => void;
+  onGoCalculator: () => void;
   onGoLanding: () => void;
   onLogout: () => void;
 }
 
 export default function Settings({
-  onGoHome, onGoLoans, onGoDebtors, onGoEntries, onGoProfile, onGoLanding, onLogout,
+  onGoHome, onGoLoans, onGoDebtors, onGoEntries, onGoProfile, onGoCalculator, onGoLanding, onLogout,
 }: Props) {
   const [lenderNameOverride, setLenderNameOverride] = useState("");
   const [additionalTerms, setAdditionalTerms] = useState("");
@@ -73,6 +74,7 @@ export default function Settings({
         onGoEntries={onGoEntries}
         onGoProfile={onGoProfile}
         onGoSettings={() => {}}
+        onGoCalculator={onGoCalculator}
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />

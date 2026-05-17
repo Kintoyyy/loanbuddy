@@ -43,6 +43,7 @@ interface EntriesProps {
   onGoProfile: () => void;
   onGoDebtors: () => void;
   onGoSettings: () => void;
+  onGoCalculator: () => void;
   onGoLanding: () => void;
   onLogout: () => void;
 }
@@ -97,7 +98,7 @@ const STATUS_DOT: Record<string, string> = {
   Closed: "bg-emerald-500",
 };
 
-function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, onGoLanding, onLogout }: EntriesProps) {
+function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, onGoCalculator, onGoLanding, onLogout }: EntriesProps) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [collectionsByEntry, setCollectionsByEntry] = useState<Record<string, EntryCollection[]>>({});
@@ -445,6 +446,7 @@ function Entries({ onGoHome, onGoLoans, onGoProfile, onGoDebtors, onGoSettings, 
         onGoEntries={() => {}}
         onGoProfile={onGoProfile}
         onGoSettings={onGoSettings}
+        onGoCalculator={onGoCalculator}
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />

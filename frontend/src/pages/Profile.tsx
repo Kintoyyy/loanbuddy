@@ -26,6 +26,7 @@ interface ProfileProps {
   onGoDebtors: () => void;
   onGoEntries: () => void;
   onGoSettings: () => void;
+  onGoCalculator: () => void;
   onGoLanding: () => void;
   onLogout: () => void;
 }
@@ -33,7 +34,7 @@ interface ProfileProps {
 const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png"]);
 const STRONG_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,64}$/;
 
-function Profile({ onBackHome, onGoLoans, onGoDebtors, onGoEntries, onGoSettings, onGoLanding, onLogout }: ProfileProps) {
+function Profile({ onBackHome, onGoLoans, onGoDebtors, onGoEntries, onGoSettings, onGoCalculator, onGoLanding, onLogout }: ProfileProps) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -245,6 +246,7 @@ function Profile({ onBackHome, onGoLoans, onGoDebtors, onGoEntries, onGoSettings
         onGoEntries={onGoEntries}
         onGoProfile={() => {}}
         onGoSettings={onGoSettings}
+        onGoCalculator={onGoCalculator}
         onGoLanding={onGoLanding}
         onLogout={onLogout}
       />

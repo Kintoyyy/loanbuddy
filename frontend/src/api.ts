@@ -163,11 +163,11 @@ async function apiRequest<T>(
       throw new Error("Your session is invalid or too large. Please login again.");
     }
 
-    if (response.status === 401 || response.status === 403 || response.status === 431 || isJwtSessionError(message)) {
+    if (response.status === 401 || response.status === 431 || isJwtSessionError(message)) {
       clearAuth();
     }
 
-    if (response.status === 401 || response.status === 403 || isJwtSessionError(message)) {
+    if (response.status === 401 || isJwtSessionError(message)) {
       throw new Error("Session expired. Please login again.");
     }
 
@@ -258,11 +258,11 @@ export async function getProfilePhotoBlob(): Promise<Blob | null> {
     const rawBody = await response.text();
     const message = rawBody || `Request failed with status ${response.status}`;
 
-    if (response.status === 401 || response.status === 403 || response.status === 431 || isJwtSessionError(message)) {
+    if (response.status === 401 || response.status === 431 || isJwtSessionError(message)) {
       clearAuth();
     }
 
-    if (response.status === 401 || response.status === 403 || isJwtSessionError(message)) {
+    if (response.status === 401 || isJwtSessionError(message)) {
       throw new Error("Session expired. Please login again.");
     }
 

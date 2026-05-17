@@ -4,18 +4,20 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.loanbuddy.api.RetrofitClient
 import com.example.loanbuddy.databinding.ActivityHomeBinding
+import com.example.loanbuddy.ui.BarChartView
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
+import java.util.Calendar
 import java.util.Locale
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
+    private val fmt = NumberFormat.getNumberInstance(Locale("en", "PH"))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,69 +29,114 @@ class HomeActivity : AppCompatActivity() {
             return
         }
 
-        binding.welcomeMessage.text = getString(R.string.welcome_message, AuthManager.getDisplayName(this))
+        val name = AuthManager.getDisplayName(this)
+        binding.welcomeName.text = "Welcome back, $name"
+        val initials = buildInitials(AuthManager.getFirstName(this), AuthManager.getLastName(this))
+        binding.profileInitials.text = initials
 
-        binding.cardLoans.setOnClickListener { startActivity(Intent(this, LoansActivity::class.java)) }
-        binding.cardDebtors.setOnClickListener { startActivity(Intent(this, DebtorsActivity::class.java)) }
-        binding.cardEntries.setOnClickListener { startActivity(Intent(this, EntriesActivity::class.java)) }
-        binding.cardCalculator.setOnClickListener { startActivity(Intent(this, CalculatorActivity::class.java)) }
-        binding.cardProfile.setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }
-
-        binding.logoutButton.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle(R.string.logout_title)
-                .setMessage(R.string.logout_confirm)
-                .setPositiveButton(R.string.logout_yes) { _, _ ->
-                    AuthManager.clearSession(this)
-                    redirectToLogin()
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .show()
+        binding.profileAvatarBtn.setOnClickListener {
+            startActivity(Intent(this, ProfileActivity::class.java))
+            overridePendingTransition(0, 0)
+        }
+        binding.btnAddCollection.setOnClickListener {
+            startActivity(Intent(this, EntriesActivity::class.java))
+            overridePendingTransition(0, 0)
+        }
+        binding.btnViewLoans.setOnClickListener {
+            startActivity(Intent(this, LoansActivity::class.java))
+            overridePendingTransition(0, 0)
         }
 
-        loadStats()
+        BottomNavHelper.setup(this, BottomNavHelper.NAV_HOME)
+        loadDashboard()
     }
 
     override fun onResume() {
         super.onResume()
-        loadStats()
+        loadDashboard()
     }
 
-    private fun loadStats() {
+    private fun loadDashboard() {
         val token = AuthManager.getBearerToken(this)
         binding.statsProgress.visibility = View.VISIBLE
 
         lifecycleScope.launch {
             try {
                 val entries = RetrofitClient.apiService.getEntries(token)
-                val loans = RetrofitClient.apiService.getLoans(token)
                 val debtors = RetrofitClient.apiService.getDebtors(token)
+                val loans = RetrofitClient.apiService.getLoans(token)
 
                 val activeEntries = entries.filter { !it.is_archived }
                 val totalOutstanding = activeEntries.sumOf { it.still_owed ?: it.original_amount }
                 val totalCollected = activeEntries.sumOf { it.total_collected ?: 0.0 }
-                val activeDebtors = debtors.count { !it.is_archived }
-                val openEntries = activeEntries.count { it.entry_status == "Open" }
-
                 val loanOutstanding = loans.sumOf { it.remaining_balance }
+                val combinedOutstanding = totalOutstanding + loanOutstanding
 
-                val fmt = NumberFormat.getNumberInstance(Locale("en", "PH"))
-                binding.statOutstanding.text = "₱${fmt.format(totalOutstanding + loanOutstanding)}"
+                val activeDebtors = debtors.count { !it.is_archived }
+                val openCount = activeEntries.count { it.entry_status.lowercase() == "open" }
+                val partialCount = activeEntries.count { it.entry_status.lowercase() == "partial" }
+                val closedCount = activeEntries.count { it.entry_status.lowercase() == "closed" }
+                val totalOriginal = activeEntries.sumOf { it.original_amount }
+
+                // Update UI
+                binding.portfolioOutstanding.text = "₱${fmt.format(combinedOutstanding)}"
+                binding.portfolioSubtitle.text = "Outstanding balance across ${activeEntries.size} active entries"
+                binding.statOutstanding.text = "₱${fmt.format(combinedOutstanding)}"
                 binding.statCollected.text = "₱${fmt.format(totalCollected)}"
                 binding.statDebtors.text = activeDebtors.toString()
-                binding.statOpenEntries.text = openEntries.toString()
+                binding.statOpenEntries.text = openCount.toString()
+
+                binding.countOpen.text = openCount.toString()
+                binding.countPartial.text = partialCount.toString()
+                binding.countClosed.text = closedCount.toString()
+
+                val rate = if (totalOriginal > 0) (totalCollected / totalOriginal).toFloat() else 0f
+                val ratePercent = (rate * 100).toInt()
+                binding.circularProgress.progress = rate
+                binding.circularProgress.centerText = "$ratePercent%"
+                binding.collectionRateLabel.text = "${fmt.format(totalCollected)} of ${fmt.format(totalOriginal)} collected"
+
+                // Build 6-month cashflow chart data
+                val chartData = buildChartData(activeEntries)
+                binding.barChart.setData(chartData)
 
             } catch (e: Exception) {
-                Toast.makeText(this@HomeActivity, "Failed to load stats: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@HomeActivity, "Failed to load: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 binding.statsProgress.visibility = View.GONE
             }
         }
     }
 
+    private fun buildChartData(entries: List<com.example.loanbuddy.data.Entry>): List<BarChartView.MonthData> {
+        val shortMonths = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        val cal = Calendar.getInstance()
+        return (5 downTo 0).map { offset ->
+            val c = Calendar.getInstance().also { it.add(Calendar.MONTH, -offset) }
+            val year = c.get(Calendar.YEAR)
+            val month = c.get(Calendar.MONTH) + 1 // 1-12
+
+            val monthEntries = entries.filter { entry ->
+                runCatching {
+                    val parts = entry.lending_date.split("-")
+                    parts[0].toInt() == year && parts[1].toInt() == month
+                }.getOrElse { false }
+            }
+            val lent = monthEntries.sumOf { it.original_amount }.toFloat()
+            val collected = monthEntries.sumOf { it.total_collected ?: 0.0 }.toFloat()
+            BarChartView.MonthData(shortMonths[month - 1], lent, collected)
+        }
+    }
+
+    private fun buildInitials(first: String?, last: String?): String {
+        val f = first?.firstOrNull()?.uppercaseChar()?.toString() ?: ""
+        val l = last?.firstOrNull()?.uppercaseChar()?.toString() ?: ""
+        return "$f$l".ifBlank { "?" }
+    }
+
     private fun redirectToLogin() {
-        val intent = Intent(this, LoginActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
+        startActivity(Intent(this, LoginActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        })
     }
 }

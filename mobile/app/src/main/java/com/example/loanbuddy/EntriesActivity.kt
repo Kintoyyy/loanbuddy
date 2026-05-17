@@ -47,6 +47,7 @@ class EntriesActivity : AppCompatActivity() {
 
         binding.backButton.setOnClickListener { finish() }
         binding.fabAddEntry.setOnClickListener { showEntryForm(null) }
+        BottomNavHelper.setup(this, BottomNavHelper.NAV_ENTRIES)
 
         adapter = EntryAdapter(
             entries = emptyList(),

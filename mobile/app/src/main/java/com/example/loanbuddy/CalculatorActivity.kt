@@ -17,6 +17,7 @@ class CalculatorActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.backButton.setOnClickListener { finish() }
+        BottomNavHelper.setup(this, BottomNavHelper.NAV_CALC)
 
         binding.tabSimple.setOnClickListener { setTab("simple") }
         binding.tabCompound.setOnClickListener { setTab("compound") }

@@ -5,10 +5,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="5dp"
+    android:layout_marginVertical="8dp"
     app:cardBackgroundColor="@color/bg_card"
     app:cardCornerRadius="14dp"
-    app:cardElevation="0dp"
+    app:cardElevation="1dp"
     app:strokeColor="@color/zinc_200"
     app:strokeWidth="1dp">
 
@@ -16,14 +16,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="18dp">
 
-        <!-- Row 1: Name + Amount -->
+        <!-- Header: Name + Amount -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -37,20 +38,23 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/zinc_900"
                     android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
+                    android:layout_marginTop="6dp"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/status_badge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:paddingHorizontal="8dp"
-                        android:paddingVertical="2dp"
+                        android:paddingVertical="3dp"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -58,26 +62,18 @@
                         android:id="@+id/date_lent"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="10dp"
                         android:textColor="@color/zinc_500"
                         android:textSize="12sp" />
                 </LinearLayout>
-
-                <TextView
-                    android:id="@+id/due_date"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:textColor="@color/rose_600"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="end">
+                android:gravity="end"
+                android:layout_marginStart="12dp">
 
                 <TextView
                     android:id="@+id/loan_amount"
@@ -92,75 +88,74 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/rose_600"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
         </LinearLayout>
+
+        <!-- Due date warning -->
+        <TextView
+            android:id="@+id/due_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/rose_600"
+            android:textSize="12sp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
 
         <!-- Progress bar -->
         <ProgressBar
             android:id="@+id/progress_bar"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="match_parent"
-            android:layout_height="6dp"
-            android:layout_marginTop="10dp"
+            android:layout_height="5dp"
             android:max="100"
             android:progressTint="@color/emerald_500"
-            android:progressBackgroundTint="@color/zinc_200" />
+            android:progressBackgroundTint="@color/zinc_200"
+            android:layout_marginBottom="14dp" />
 
         <!-- Action buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="12dp"
-            android:weightSum="4">
+            android:weightSum="3"
+            android:spacing="8dp">
 
             <Button
                 android:id="@+id/btn_payments"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:backgroundTint="@color/zinc_100"
+                android:backgroundTint="@color/sky_100"
                 android:text="Payments"
-                android:textColor="@color/zinc_700"
-                android:textSize="11sp"
+                android:textColor="@color/sky_700"
+                android:textSize="12sp"
+                android:textStyle="bold"
                 style="@style/Widget.MaterialComponents.Button" />
 
             <Button
                 android:id="@+id/btn_toggle_paid"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="2dp"
                 android:backgroundTint="@color/emerald_100"
                 android:text="Paid"
                 android:textColor="@color/emerald_700"
-                android:textSize="11sp"
+                android:textSize="12sp"
+                android:textStyle="bold"
                 style="@style/Widget.MaterialComponents.Button" />
 
             <Button
                 android:id="@+id/btn_edit"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="2dp"
                 android:backgroundTint="@color/zinc_100"
                 android:text="Edit"
                 android:textColor="@color/zinc_700"
-                android:textSize="11sp"
-                style="@style/Widget.MaterialComponents.Button" />
-
-            <Button
-                android:id="@+id/btn_delete"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:backgroundTint="@color/rose_100"
-                android:text="Delete"
-                android:textColor="@color/rose_700"
-                android:textSize="11sp"
+                android:textSize="12sp"
+                android:textStyle="bold"
                 style="@style/Widget.MaterialComponents.Button" />
         </LinearLayout>
     </LinearLayout>

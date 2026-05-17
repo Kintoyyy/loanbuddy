@@ -29,6 +29,7 @@ class DebtorsActivity : AppCompatActivity() {
 
         binding.backButton.setOnClickListener { finish() }
         binding.fabAddDebtor.setOnClickListener { showDebtorForm(null) }
+        BottomNavHelper.setup(this, BottomNavHelper.NAV_DEBTORS)
         binding.toggleArchived.setOnClickListener {
             showArchived = !showArchived
             binding.toggleArchived.text = if (showArchived) "Hide Archived" else "Show Archived"

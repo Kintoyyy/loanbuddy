@@ -11,7 +11,7 @@ import java.util.Locale
 class LoanAdapter(
     private var loans: List<Loan>,
     private val onEdit: (Loan) -> Unit,
-    private val onDelete: (Loan) -> Unit,
+    private val onDelete: (Loan) -> Unit = {},
     private val onTogglePaid: (Loan) -> Unit,
     private val onShowPayments: (Loan) -> Unit
 ) : RecyclerView.Adapter<LoanAdapter.ViewHolder>() {
@@ -70,7 +70,6 @@ class LoanAdapter(
         }
 
         b.btnEdit.setOnClickListener { onEdit(loan) }
-        b.btnDelete.setOnClickListener { onDelete(loan) }
         b.btnTogglePaid.setOnClickListener { onTogglePaid(loan) }
         b.btnPayments.setOnClickListener { onShowPayments(loan) }
         b.btnTogglePaid.text = if (loan.status == "paid") "Reopen" else "Paid"

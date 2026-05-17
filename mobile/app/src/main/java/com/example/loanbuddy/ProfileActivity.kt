@@ -36,6 +36,7 @@ class ProfileActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.backButton.setOnClickListener { finish() }
+        BottomNavHelper.setup(this, BottomNavHelper.NAV_PROFILE)
         binding.btnChangePhoto.setOnClickListener { pickPhoto.launch("image/*") }
         binding.btnEditProfile.setOnClickListener { showEditProfileDialog() }
         binding.btnChangePassword.setOnClickListener { showChangePasswordDialog() }

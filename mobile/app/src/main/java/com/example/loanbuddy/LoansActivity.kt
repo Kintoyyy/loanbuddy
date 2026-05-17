@@ -47,6 +47,7 @@ class LoansActivity : AppCompatActivity() {
 
         binding.backButton.setOnClickListener { finish() }
         binding.fabAddLoan.setOnClickListener { showLoanForm(null) }
+        BottomNavHelper.setup(this, BottomNavHelper.NAV_LOANS)
 
         adapter = LoanAdapter(
             loans = emptyList(),

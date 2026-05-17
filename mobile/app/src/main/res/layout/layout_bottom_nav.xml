@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/bottom_nav_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/white"
+    android:elevation="12dp"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="12dp">
+
+    <!-- Home -->
+    <LinearLayout android:id="@+id/nav_home" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="2dp">
+        <FrameLayout android:id="@+id/nav_bg_home" android:layout_width="44dp" android:layout_height="30dp" android:gravity="center">
+            <ImageView android:id="@+id/nav_icon_home" android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:src="@drawable/ic_home" app:tint="@color/zinc_400" />
+        </FrameLayout>
+        <TextView android:id="@+id/nav_label_home" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Home" android:textSize="9sp" android:textColor="@color/zinc_400" android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Loans -->
+    <LinearLayout android:id="@+id/nav_loans" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="2dp">
+        <FrameLayout android:id="@+id/nav_bg_loans" android:layout_width="44dp" android:layout_height="30dp" android:gravity="center">
+            <ImageView android:id="@+id/nav_icon_loans" android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:src="@drawable/ic_loans" app:tint="@color/zinc_400" />
+        </FrameLayout>
+        <TextView android:id="@+id/nav_label_loans" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Loans" android:textSize="9sp" android:textColor="@color/zinc_400" android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Debtors -->
+    <LinearLayout android:id="@+id/nav_debtors" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="2dp">
+        <FrameLayout android:id="@+id/nav_bg_debtors" android:layout_width="44dp" android:layout_height="30dp" android:gravity="center">
+            <ImageView android:id="@+id/nav_icon_debtors" android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:src="@drawable/ic_debtors" app:tint="@color/zinc_400" />
+        </FrameLayout>
+        <TextView android:id="@+id/nav_label_debtors" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Debtors" android:textSize="9sp" android:textColor="@color/zinc_400" android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Entries -->
+    <LinearLayout android:id="@+id/nav_entries" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="2dp">
+        <FrameLayout android:id="@+id/nav_bg_entries" android:layout_width="44dp" android:layout_height="30dp" android:gravity="center">
+            <ImageView android:id="@+id/nav_icon_entries" android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:src="@drawable/ic_entries" app:tint="@color/zinc_400" />
+        </FrameLayout>
+        <TextView android:id="@+id/nav_label_entries" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Entries" android:textSize="9sp" android:textColor="@color/zinc_400" android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Calc -->
+    <LinearLayout android:id="@+id/nav_calc" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="2dp">
+        <FrameLayout android:id="@+id/nav_bg_calc" android:layout_width="44dp" android:layout_height="30dp" android:gravity="center">
+            <ImageView android:id="@+id/nav_icon_calc" android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:src="@drawable/ic_calc" app:tint="@color/zinc_400" />
+        </FrameLayout>
+        <TextView android:id="@+id/nav_label_calc" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Calc" android:textSize="9sp" android:textColor="@color/zinc_400" android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Profile -->
+    <LinearLayout android:id="@+id/nav_profile" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="2dp">
+        <FrameLayout android:id="@+id/nav_bg_profile" android:layout_width="44dp" android:layout_height="30dp" android:gravity="center">
+            <ImageView android:id="@+id/nav_icon_profile" android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:src="@drawable/ic_user" app:tint="@color/zinc_400" />
+        </FrameLayout>
+        <TextView android:id="@+id/nav_label_profile" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Profile" android:textSize="9sp" android:textColor="@color/zinc_400" android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Settings -->
+    <LinearLayout android:id="@+id/nav_settings" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="2dp">
+        <FrameLayout android:id="@+id/nav_bg_settings" android:layout_width="44dp" android:layout_height="30dp" android:gravity="center">
+            <ImageView android:id="@+id/nav_icon_settings" android:layout_width="20dp" android:layout_height="20dp"
+                android:layout_gravity="center" android:src="@drawable/ic_settings" app:tint="@color/zinc_400" />
+        </FrameLayout>
+        <TextView android:id="@+id/nav_label_settings" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Settings" android:textSize="9sp" android:textColor="@color/zinc_400" android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+</LinearLayout>

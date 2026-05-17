@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_card"
+    android:orientation="vertical">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="52dp"
+        android:paddingBottom="14dp"
+        android:background="@color/bg_card">
+
+        <ImageButton
+            android:id="@+id/btn_close"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_left"
+            android:contentDescription="Close"
+            app:tint="@color/zinc_700" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Loan Agreement"
+            android:textColor="@color/zinc_900"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/zinc_200" />
+
+    <!-- Scrollable content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="PERSONAL LOAN AGREEMENT"
+                android:textColor="@color/zinc_900"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginTop="4dp"
+                android:text="A legally binding agreement between the parties named below"
+                android:textColor="@color/zinc_400"
+                android:textSize="11sp" />
+
+            <!-- Intro line -->
+            <TextView
+                android:id="@+id/text_agreement_intro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textColor="@color/zinc_700"
+                android:textSize="13sp"
+                android:lineSpacingExtra="4dp" />
+
+            <!-- Parties -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    app:cardBackgroundColor="@color/zinc_50"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/zinc_200"
+                    app:strokeWidth="1dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="LENDER" android:textColor="@color/zinc_400"
+                            android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.1" />
+                        <TextView android:id="@+id/text_lender_name" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                            android:textColor="@color/zinc_900" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    app:cardBackgroundColor="@color/zinc_50"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/zinc_200"
+                    app:strokeWidth="1dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="BORROWER" android:textColor="@color/zinc_400"
+                            android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.1" />
+                        <TextView android:id="@+id/text_borrower_name" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                            android:textColor="@color/zinc_900" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginVertical="16dp" android:background="@color/zinc_200" />
+
+            <!-- Section 1 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="SECTION 1 — LOAN AMOUNT" android:textColor="@color/zinc_400"
+                android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.08" />
+            <TextView android:id="@+id/text_section_amount" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="6dp"
+                android:textColor="@color/zinc_700" android:textSize="13sp" android:lineSpacingExtra="4dp" />
+
+            <!-- Section 2 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" android:text="SECTION 2 — REPAYMENT"
+                android:textColor="@color/zinc_400" android:textSize="10sp" android:textStyle="bold"
+                android:letterSpacing="0.08" />
+            <TextView android:id="@+id/text_section_repayment" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="6dp"
+                android:textColor="@color/zinc_700" android:textSize="13sp" android:lineSpacingExtra="4dp" />
+
+            <!-- Section 3 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" android:text="SECTION 3 — INTEREST"
+                android:textColor="@color/zinc_400" android:textSize="10sp" android:textStyle="bold"
+                android:letterSpacing="0.08" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="This loan is granted interest-free unless otherwise agreed in a separate written amendment executed by both parties."
+                android:textColor="@color/zinc_700" android:textSize="13sp" android:lineSpacingExtra="4dp" />
+
+            <!-- Section 4 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" android:text="SECTION 4 — DEFAULT"
+                android:textColor="@color/zinc_400" android:textSize="10sp" android:textStyle="bold"
+                android:letterSpacing="0.08" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Should the Borrower fail to repay by the agreed date, the Lender reserves the right to pursue all available legal remedies to recover the outstanding balance."
+                android:textColor="@color/zinc_700" android:textSize="13sp" android:lineSpacingExtra="4dp" />
+
+            <!-- Section 5 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" android:text="SECTION 5 — ACKNOWLEDGMENT"
+                android:textColor="@color/zinc_400" android:textSize="10sp" android:textStyle="bold"
+                android:letterSpacing="0.08" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="By signing below, the Borrower confirms they have read, understood, and voluntarily agreed to the terms of this Agreement, and acknowledges receipt of the stated loan amount."
+                android:textColor="@color/zinc_700" android:textSize="13sp" android:lineSpacingExtra="4dp" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginVertical="16dp" android:background="@color/zinc_200" />
+
+            <!-- Signature -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="BORROWER'S SIGNATURE"
+                android:textColor="@color/zinc_400" android:textSize="10sp" android:textStyle="bold"
+                android:letterSpacing="0.08" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Draw your signature in the area below"
+                android:textColor="@color/zinc_400" android:textSize="12sp" />
+
+            <com.example.loanbuddy.ui.SignaturePadView
+                android:id="@+id/signature_pad"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_signature_pad" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:layout_marginTop="8dp">
+
+                <Button
+                    android:id="@+id/btn_clear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:backgroundTint="@color/zinc_100"
+                    android:text="Clear"
+                    android:textColor="@color/zinc_600"
+                    android:textSize="12sp"
+                    style="@style/Widget.MaterialComponents.Button" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/text_agreement_footer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:textColor="@color/zinc_300"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/zinc_200" />
+
+    <!-- Footer actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="14dp">
+
+        <Button
+            android:id="@+id/btn_skip"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginEnd="10dp"
+            android:backgroundTint="@color/zinc_100"
+            android:text="Skip for now"
+            android:textColor="@color/zinc_600"
+            android:textSize="13sp"
+            style="@style/Widget.MaterialComponents.Button" />
+
+        <Button
+            android:id="@+id/btn_sign"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:backgroundTint="@color/zinc_900"
+            android:text="Sign &amp; Save"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            style="@style/Widget.MaterialComponents.Button" />
+
+    </LinearLayout>
+
+</LinearLayout>

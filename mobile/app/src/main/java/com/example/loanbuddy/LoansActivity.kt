@@ -15,6 +15,7 @@ import com.example.loanbuddy.adapter.LoanAdapter
 import com.example.loanbuddy.api.RetrofitClient
 import com.example.loanbuddy.data.*
 import com.example.loanbuddy.databinding.ActivityLoansBinding
+import com.example.loanbuddy.ui.SignaturePadView
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -32,11 +33,10 @@ class LoansActivity : AppCompatActivity() {
 
     private var pendingProofLoanId: String? = null
     private var pendingProofPaymentId: String? = null
-    private var pendingProofDialog: AlertDialog? = null
 
     private val pickProofLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null && pendingProofLoanId != null && pendingProofPaymentId != null) {
-            uploadProof(uri, pendingProofLoanId!!, pendingProofPaymentId!!)
+            uploadProofFromUri(uri, pendingProofLoanId!!, pendingProofPaymentId!!)
         }
     }
 
@@ -63,6 +63,9 @@ class LoansActivity : AppCompatActivity() {
         binding.filterActive.setOnClickListener { setFilter("active") }
         binding.filterPaid.setOnClickListener { setFilter("paid") }
 
+        binding.swipeRefresh.setColorSchemeResources(R.color.zinc_900)
+        binding.swipeRefresh.setOnRefreshListener { loadLoans() }
+
         loadLoans()
     }
 
@@ -78,6 +81,7 @@ class LoansActivity : AppCompatActivity() {
                 Toast.makeText(this@LoansActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
+                binding.swipeRefresh.isRefreshing = false
             }
         }
     }
@@ -85,13 +89,9 @@ class LoansActivity : AppCompatActivity() {
     private fun setFilter(f: String) {
         filter = f
         applyFilter()
-        val active = android.graphics.Color.WHITE
-        val inactive = android.graphics.Color.TRANSPARENT
-        val activeText = getColor(R.color.white)
-        val inactiveText = getColor(R.color.zinc_500)
         listOf(binding.filterAll to "all", binding.filterActive to "active", binding.filterPaid to "paid").forEach { (btn, key) ->
-            btn.setBackgroundColor(if (key == filter) getColor(R.color.zinc_900) else inactive)
-            btn.setTextColor(if (key == filter) activeText else inactiveText)
+            btn.setBackgroundColor(if (key == filter) getColor(R.color.zinc_900) else android.graphics.Color.TRANSPARENT)
+            btn.setTextColor(if (key == filter) getColor(R.color.white) else getColor(R.color.zinc_500))
         }
     }
 
@@ -123,13 +123,11 @@ class LoansActivity : AppCompatActivity() {
         val interestInput = v.findViewById<EditText>(R.id.input_interest_rate)
         val penaltyInput = v.findViewById<EditText>(R.id.input_penalty_rate)
         val descInput = v.findViewById<EditText>(R.id.input_description)
-        val freqSpinner = v.findViewById<Spinner>(R.id.spinner_frequency)
+        val freqDropdown = v.findViewById<AutoCompleteTextView>(R.id.dropdown_frequency)
 
-        val freqValues = arrayOf("none","weekly","semimonthly","monthly","quarterly")
-        freqSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item,
-            arrayOf("One-time","Weekly","Semi-Monthly","Monthly","Quarterly")).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        val freqValues = arrayOf("none", "weekly", "semimonthly", "monthly", "quarterly")
+        val freqLabels = arrayOf("One-time", "Weekly", "Semi-Monthly", "Monthly", "Quarterly")
+        freqDropdown.setAdapter(ArrayAdapter(this, R.layout.item_dropdown, freqLabels))
 
         loan?.let {
             borrowerInput.setText(it.borrower_name)
@@ -139,9 +137,11 @@ class LoansActivity : AppCompatActivity() {
             interestInput.setText(if (it.interest_rate > 0) it.interest_rate.toString() else "")
             penaltyInput.setText(if (it.penalty_rate > 0) it.penalty_rate.toString() else "")
             descInput.setText(it.description ?: "")
-            freqSpinner.setSelection(freqValues.indexOf(it.payment_frequency).coerceAtLeast(0))
+            val idx = freqValues.indexOf(it.payment_frequency).coerceAtLeast(0)
+            freqDropdown.setText(freqLabels[idx], false)
         } ?: run {
             dateLentInput.setText(today())
+            freqDropdown.setText(freqLabels[0], false)
         }
 
         dateLentInput.setOnClickListener { pickDate { dateLentInput.setText(it) } }
@@ -158,6 +158,8 @@ class LoansActivity : AppCompatActivity() {
                     Toast.makeText(this, "Name, amount, and date are required", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
+                val selectedLabel = freqDropdown.text.toString()
+                val freqIdx = freqLabels.indexOf(selectedLabel).coerceAtLeast(0)
                 val request = LoanRequest(
                     borrowerName = name,
                     amount = amount,
@@ -166,7 +168,7 @@ class LoansActivity : AppCompatActivity() {
                     dueDate = dueDateInput.text.toString().trim().ifBlank { null },
                     status = loan?.status,
                     interestRate = interestInput.text.toString().toDoubleOrNull() ?: 0.0,
-                    paymentFrequency = freqValues[freqSpinner.selectedItemPosition],
+                    paymentFrequency = freqValues[freqIdx],
                     penaltyRate = penaltyInput.text.toString().toDoubleOrNull() ?: 0.0
                 )
                 if (loan == null) createLoan(request) else updateLoan(loan.loan_id, request)
@@ -178,9 +180,11 @@ class LoansActivity : AppCompatActivity() {
     private fun createLoan(request: LoanRequest) {
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.createLoan(AuthManager.getBearerToken(this@LoansActivity), request)
+                val loan = RetrofitClient.apiService.createLoan(AuthManager.getBearerToken(this@LoansActivity), request)
                 loadLoans()
                 Toast.makeText(this@LoansActivity, "Loan added", Toast.LENGTH_SHORT).show()
+                val lenderName = AuthManager.getDisplayName(this@LoansActivity)
+                LoanAgreementDialog.newInstance(loan, lenderName).show(supportFragmentManager, "agreement")
             } catch (e: Exception) {
                 Toast.makeText(this@LoansActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
@@ -251,7 +255,7 @@ class LoansActivity : AppCompatActivity() {
 
         val items = payments.map { p ->
             val archived = if (p.is_archived) " [Archived]" else ""
-            "₱${fmt.format(p.amount)} · ${formatDate(p.payment_date)}${archived}${if (!p.note.isNullOrBlank()) " · ${p.note}" else ""}"
+            "₱${fmt.format(p.amount)} · ${formatDate(p.payment_date)}$archived${if (!p.note.isNullOrBlank()) " · ${p.note}" else ""}"
         }
         listView.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, items)
 
@@ -299,12 +303,13 @@ class LoansActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val created = RetrofitClient.apiService.addPayment(AuthManager.getBearerToken(this@LoansActivity), loan.loan_id, req)
-                    pendingProofLoanId = loan.loan_id
-                    pendingProofPaymentId = created.payment_id
-                    pendingProofDialog = dialog
-                    dialog.dismiss()
-                    pickProofLauncher.launch("image/*")
                     loadLoans()
+                    showProofOptions(loan.loan_id, created.payment_id, dialog)
+                } catch (e: retrofit2.HttpException) {
+                    val msg = try {
+                        org.json.JSONObject(e.response()?.errorBody()?.string() ?: "").getString("message")
+                    } catch (_: Exception) { e.message ?: "Request failed" }
+                    Toast.makeText(this@LoansActivity, msg, Toast.LENGTH_LONG).show()
                 } catch (e: Exception) {
                     Toast.makeText(this@LoansActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
@@ -314,7 +319,54 @@ class LoansActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun uploadProof(uri: Uri, loanId: String, paymentId: String) {
+    private fun showProofOptions(loanId: String, paymentId: String, parentDialog: AlertDialog) {
+        AlertDialog.Builder(this)
+            .setTitle("Attach Proof?")
+            .setItems(arrayOf("Choose Photo", "Draw Signature", "Skip")) { _, which ->
+                when (which) {
+                    0 -> {
+                        pendingProofLoanId = loanId
+                        pendingProofPaymentId = paymentId
+                        parentDialog.dismiss()
+                        pickProofLauncher.launch("image/*")
+                    }
+                    1 -> showSignatureForPayment(loanId, paymentId, parentDialog)
+                    2 -> parentDialog.dismiss()
+                }
+            }
+            .show()
+    }
+
+    private fun showSignatureForPayment(loanId: String, paymentId: String, parentDialog: AlertDialog) {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_signature, null)
+        val pad = v.findViewById<SignaturePadView>(R.id.signature_pad)
+        v.findViewById<Button>(R.id.btn_clear_sig).setOnClickListener { pad.clear() }
+
+        AlertDialog.Builder(this)
+            .setTitle("Draw Signature")
+            .setView(v)
+            .setPositiveButton("Save") { _, _ ->
+                if (!pad.isEmpty()) {
+                    lifecycleScope.launch {
+                        try {
+                            val body = pad.toByteArray().toRequestBody("image/png".toMediaType())
+                            val part = MultipartBody.Part.createFormData("file", "signature.png", body)
+                            RetrofitClient.apiService.uploadPaymentProof(
+                                AuthManager.getBearerToken(this@LoansActivity), loanId, paymentId, part
+                            )
+                            Toast.makeText(this@LoansActivity, "Signature saved", Toast.LENGTH_SHORT).show()
+                            parentDialog.dismiss()
+                        } catch (e: Exception) {
+                            Toast.makeText(this@LoansActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Skip", null)
+            .show()
+    }
+
+    private fun uploadProofFromUri(uri: Uri, loanId: String, paymentId: String) {
         lifecycleScope.launch {
             try {
                 val bytes = contentResolver.openInputStream(uri)?.readBytes() ?: return@launch
@@ -323,7 +375,6 @@ class LoansActivity : AppCompatActivity() {
                 val part = MultipartBody.Part.createFormData("file", "proof.jpg", body)
                 RetrofitClient.apiService.uploadPaymentProof(AuthManager.getBearerToken(this@LoansActivity), loanId, paymentId, part)
                 Toast.makeText(this@LoansActivity, "Proof uploaded", Toast.LENGTH_SHORT).show()
-                loadLoans()
             } catch (e: Exception) {
                 Toast.makeText(this@LoansActivity, "Proof upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }

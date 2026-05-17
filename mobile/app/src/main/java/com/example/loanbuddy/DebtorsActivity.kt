@@ -44,6 +44,9 @@ class DebtorsActivity : AppCompatActivity() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
+        binding.swipeRefresh.setColorSchemeResources(R.color.zinc_900)
+        binding.swipeRefresh.setOnRefreshListener { loadDebtors() }
+
         loadDebtors()
     }
 
@@ -58,6 +61,7 @@ class DebtorsActivity : AppCompatActivity() {
                 Toast.makeText(this@DebtorsActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
+                binding.swipeRefresh.isRefreshing = false
             }
         }
     }
@@ -74,18 +78,19 @@ class DebtorsActivity : AppCompatActivity() {
         val nameInput = v.findViewById<EditText>(R.id.input_name)
         val phoneInput = v.findViewById<EditText>(R.id.input_phone)
         val emailInput = v.findViewById<EditText>(R.id.input_email)
-        val typeSpinner = v.findViewById<Spinner>(R.id.spinner_type)
+        val typeDropdown = v.findViewById<AutoCompleteTextView>(R.id.dropdown_type)
 
         val types = arrayOf("Person", "Entity", "Organization")
-        typeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, types).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        typeDropdown.setAdapter(ArrayAdapter(this, R.layout.item_dropdown, types))
 
         debtor?.let {
             nameInput.setText(it.debtor_name)
             phoneInput.setText(it.phone_number ?: "")
             emailInput.setText(it.email ?: "")
-            typeSpinner.setSelection(types.indexOf(it.debtor_type).coerceAtLeast(0))
+            val idx = types.indexOf(it.debtor_type).coerceAtLeast(0)
+            typeDropdown.setText(types[idx], false)
+        } ?: run {
+            typeDropdown.setText(types[0], false)
         }
 
         AlertDialog.Builder(this)
@@ -93,10 +98,14 @@ class DebtorsActivity : AppCompatActivity() {
             .setView(v)
             .setPositiveButton("Save") { _, _ ->
                 val name = nameInput.text.toString().trim()
-                if (name.isEmpty()) { Toast.makeText(this, "Name is required", Toast.LENGTH_SHORT).show(); return@setPositiveButton }
+                if (name.isEmpty()) {
+                    Toast.makeText(this, "Name is required", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val selectedType = typeDropdown.text.toString().ifBlank { types[0] }
                 val request = DebtorRequest(
                     debtor_name = name,
-                    debtor_type = types[typeSpinner.selectedItemPosition],
+                    debtor_type = selectedType,
                     phone_number = phoneInput.text.toString().trim().ifBlank { null },
                     email = emailInput.text.toString().trim().ifBlank { null }
                 )

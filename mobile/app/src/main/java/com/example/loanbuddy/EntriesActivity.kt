@@ -15,6 +15,7 @@ import com.example.loanbuddy.adapter.EntryAdapter
 import com.example.loanbuddy.api.RetrofitClient
 import com.example.loanbuddy.data.*
 import com.example.loanbuddy.databinding.ActivityEntriesBinding
+import com.example.loanbuddy.ui.SignaturePadView
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -36,7 +37,7 @@ class EntriesActivity : AppCompatActivity() {
 
     private val pickProofLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null && pendingProofEntryId != null && pendingProofCollectionId != null) {
-            uploadCollectionProof(uri, pendingProofEntryId!!, pendingProofCollectionId!!)
+            uploadCollectionProofFromUri(uri, pendingProofEntryId!!, pendingProofCollectionId!!)
         }
     }
 
@@ -63,6 +64,9 @@ class EntriesActivity : AppCompatActivity() {
         binding.filterPartial.setOnClickListener { setFilter("partial") }
         binding.filterClosed.setOnClickListener { setFilter("closed") }
 
+        binding.swipeRefresh.setColorSchemeResources(R.color.zinc_900)
+        binding.swipeRefresh.setOnRefreshListener { loadData() }
+
         loadData()
     }
 
@@ -79,6 +83,7 @@ class EntriesActivity : AppCompatActivity() {
                 Toast.makeText(this@EntriesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
+                binding.swipeRefresh.isRefreshing = false
             }
         }
     }
@@ -125,13 +130,11 @@ class EntriesActivity : AppCompatActivity() {
         val paybackDateInput = v.findViewById<EditText>(R.id.input_payback_date)
         val notesInput = v.findViewById<EditText>(R.id.input_notes)
         val penaltyRateInput = v.findViewById<EditText>(R.id.input_penalty_rate)
-        val debtorSpinner = v.findViewById<Spinner>(R.id.spinner_debtor)
+        val debtorDropdown = v.findViewById<AutoCompleteTextView>(R.id.dropdown_debtor)
 
         val activeDebtors = debtors.filter { !it.is_archived }
         val debtorNames = activeDebtors.map { it.debtor_name }.toTypedArray()
-        debtorSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, debtorNames).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        debtorDropdown.setAdapter(ArrayAdapter(this, R.layout.item_dropdown, debtorNames))
 
         entry?.let {
             amountInput.setText(it.original_amount.toString())
@@ -140,9 +143,10 @@ class EntriesActivity : AppCompatActivity() {
             notesInput.setText(it.notes ?: "")
             penaltyRateInput.setText(if (it.penalty_rate > 0) it.penalty_rate.toString() else "")
             val idx = activeDebtors.indexOfFirst { d -> d.debtor_id == it.debtor_id }
-            if (idx >= 0) debtorSpinner.setSelection(idx)
+            if (idx >= 0) debtorDropdown.setText(debtorNames[idx], false)
         } ?: run {
             lendingDateInput.setText(today())
+            if (debtorNames.isNotEmpty()) debtorDropdown.setText(debtorNames[0], false)
         }
 
         lendingDateInput.setOnClickListener { pickDate { lendingDateInput.setText(it) } }
@@ -162,8 +166,10 @@ class EntriesActivity : AppCompatActivity() {
                     Toast.makeText(this, "Add a debtor first", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
+                val selectedName = debtorDropdown.text.toString()
+                val debtorIdx = debtorNames.indexOf(selectedName).coerceAtLeast(0)
                 val request = EntryRequest(
-                    debtor_id = activeDebtors[debtorSpinner.selectedItemPosition].debtor_id,
+                    debtor_id = activeDebtors[debtorIdx].debtor_id,
                     original_amount = amount,
                     currency = "PHP",
                     lending_date = date,
@@ -223,16 +229,15 @@ class EntriesActivity : AppCompatActivity() {
         val amountInput = v.findViewById<EditText>(R.id.input_amount)
         val dateInput = v.findViewById<EditText>(R.id.input_date)
         val notesInput = v.findViewById<EditText>(R.id.input_notes)
-        val methodSpinner = v.findViewById<Spinner>(R.id.spinner_method)
+        val methodDropdown = v.findViewById<AutoCompleteTextView>(R.id.dropdown_method)
         val addBtn = v.findViewById<Button>(R.id.btn_add_collection)
 
         dateInput.setText(today())
         dateInput.setOnClickListener { pickDate { dateInput.setText(it) } }
 
-        val methods = arrayOf("Cash","Bank Transfer","GCash","PayMaya","Check","Online Transfer","Card","Other")
-        methodSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, methods).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        val methods = arrayOf("Cash", "Bank Transfer", "GCash", "PayMaya", "Check", "Online Transfer", "Card", "Other")
+        methodDropdown.setAdapter(ArrayAdapter(this, R.layout.item_dropdown, methods))
+        methodDropdown.setText(methods[0], false)
 
         val token = AuthManager.getBearerToken(this)
         var collections = listOf<EntryCollection>()
@@ -287,21 +292,19 @@ class EntriesActivity : AppCompatActivity() {
                 Toast.makeText(this, "Amount and date required", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            val selectedMethod = methodDropdown.text.toString().ifBlank { methods[0] }
             val req = CollectionRequest(
                 amount_collected = amount,
                 collection_date = date,
-                payment_method = methods[methodSpinner.selectedItemPosition],
+                payment_method = selectedMethod,
                 notes = notesInput.text.toString().trim().ifBlank { null },
                 transaction_id = null
             )
             lifecycleScope.launch {
                 try {
                     val created = RetrofitClient.apiService.createCollection(token, entry.entry_id, req)
-                    pendingProofEntryId = entry.entry_id
-                    pendingProofCollectionId = created.collection_id
-                    dialog.dismiss()
-                    pickProofLauncher.launch("image/*")
                     loadData()
+                    showCollectionProofOptions(entry.entry_id, created.collection_id, dialog)
                 } catch (e: Exception) {
                     Toast.makeText(this@EntriesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
@@ -311,7 +314,54 @@ class EntriesActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun uploadCollectionProof(uri: Uri, entryId: String, collectionId: String) {
+    private fun showCollectionProofOptions(entryId: String, collectionId: String, parentDialog: AlertDialog) {
+        AlertDialog.Builder(this)
+            .setTitle("Attach Proof?")
+            .setItems(arrayOf("Choose Photo", "Draw Signature", "Skip")) { _, which ->
+                when (which) {
+                    0 -> {
+                        pendingProofEntryId = entryId
+                        pendingProofCollectionId = collectionId
+                        parentDialog.dismiss()
+                        pickProofLauncher.launch("image/*")
+                    }
+                    1 -> showSignatureForCollection(entryId, collectionId, parentDialog)
+                    2 -> parentDialog.dismiss()
+                }
+            }
+            .show()
+    }
+
+    private fun showSignatureForCollection(entryId: String, collectionId: String, parentDialog: AlertDialog) {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_signature, null)
+        val pad = v.findViewById<SignaturePadView>(R.id.signature_pad)
+        v.findViewById<Button>(R.id.btn_clear_sig).setOnClickListener { pad.clear() }
+
+        AlertDialog.Builder(this)
+            .setTitle("Draw Signature")
+            .setView(v)
+            .setPositiveButton("Save") { _, _ ->
+                if (!pad.isEmpty()) {
+                    lifecycleScope.launch {
+                        try {
+                            val body = pad.toByteArray().toRequestBody("image/png".toMediaType())
+                            val part = MultipartBody.Part.createFormData("file", "signature.png", body)
+                            RetrofitClient.apiService.uploadCollectionProof(
+                                AuthManager.getBearerToken(this@EntriesActivity), entryId, collectionId, part
+                            )
+                            Toast.makeText(this@EntriesActivity, "Signature saved", Toast.LENGTH_SHORT).show()
+                            parentDialog.dismiss()
+                        } catch (e: Exception) {
+                            Toast.makeText(this@EntriesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Skip", null)
+            .show()
+    }
+
+    private fun uploadCollectionProofFromUri(uri: Uri, entryId: String, collectionId: String) {
         lifecycleScope.launch {
             try {
                 val bytes = contentResolver.openInputStream(uri)?.readBytes() ?: return@launch

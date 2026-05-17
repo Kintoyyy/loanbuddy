@@ -1,58 +1,137 @@
 <resources>
     <string name="app_name">LoanBuddy</string>
 
+    <!-- Common -->
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="add">Add</string>
+    <string name="close">Close</string>
+    <string name="loading">Loading…</string>
+    <string name="ok">OK</string>
+    <string name="go_back">Back</string>
+
     <!-- Login -->
     <string name="login_title">Welcome back</string>
-    <string name="login_subtitle">Sign in to your account to continue</string>
+    <string name="login_subtitle">Sign in to your account</string>
     <string name="login_card_title">Sign in</string>
     <string name="login_card_subtitle">Enter your email and password below</string>
     <string name="email_hint">Email</string>
     <string name="password_hint">Password</string>
     <string name="login_button">Sign in</string>
-    <string name="or_continue_with">OR CONTINUE WITH</string>
-    <string name="no_account_register">Don&#8217;t have an account? <b>Create one now</b></string>
+    <string name="no_account_register">Don\'t have an account? <b>Create one</b></string>
 
     <!-- Register -->
     <string name="register_title">Create account</string>
-    <string name="register_subtitle">Fill in the details below to get started</string>
-    <string name="register_card_title">Sign up</string>
-    <string name="register_card_subtitle">Enter your details below</string>
-    <string name="full_name_hint">Full Name</string>
+    <string name="register_subtitle">Fill in your details to get started</string>
+    <string name="first_name_hint">First Name</string>
+    <string name="last_name_hint">Last Name</string>
+    <string name="username_hint">Username</string>
+    <string name="birthday_hint">Birthday (YYYY-MM-DD)</string>
     <string name="confirm_password_hint">Confirm Password</string>
     <string name="register_button">Create account</string>
     <string name="have_account_login">Already have an account? <b>Sign in</b></string>
 
-    <!-- Home -->
-    <string name="home_greeting">Good day,</string>
-    <string name="welcome_message">Welcome, %s!</string>
+    <!-- Home / Dashboard -->
     <string name="dashboard_title">Dashboard</string>
+    <string name="welcome_message">Welcome, %s</string>
+    <string name="stat_outstanding">Outstanding</string>
+    <string name="stat_collected">Collected</string>
+    <string name="stat_debtors">Active Debtors</string>
+    <string name="stat_open_entries">Open Entries</string>
+    <string name="nav_loans">Loans</string>
+    <string name="nav_debtors">Debtors</string>
+    <string name="nav_entries">Entries</string>
+    <string name="nav_calculator">Calculator</string>
     <string name="my_profile">My Profile</string>
-    <string name="my_profile_desc">View and update your details</string>
-    <string name="admin_panel">Admin Panel</string>
-    <string name="admin_panel_desc">Manage users and loans</string>
+    <string name="my_profile_desc">View and edit your details</string>
     <string name="logout">Log Out</string>
     <string name="logout_desc">Sign out of your account</string>
     <string name="logout_title">Log Out</string>
     <string name="logout_confirm">Are you sure you want to log out?</string>
     <string name="logout_yes">Log Out</string>
-    <string name="cancel">Cancel</string>
-    <string name="role_user">User</string>
-    <string name="role_admin">Admin</string>
 
     <!-- Profile -->
     <string name="profile_title">My Profile</string>
-    <string name="profile_subtitle">Your account information</string>
-    <string name="label_full_name">Full Name</string>
-    <string name="label_email">Email address</string>
-    <string name="label_role">Role</string>
-    <string name="refresh_profile">Refresh from Server</string>
-    <string name="go_back">Back</string>
+    <string name="label_email">Email</string>
+    <string name="label_first_name">First Name</string>
+    <string name="label_last_name">Last Name</string>
+    <string name="label_username">Username</string>
+    <string name="label_birthday">Birthday</string>
+    <string name="label_phone">Phone</string>
+    <string name="label_bio">Bio</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="change_password">Change Password</string>
+    <string name="upload_photo">Upload Photo</string>
+    <string name="current_password_hint">Current Password</string>
+    <string name="new_password_hint">New Password</string>
+    <string name="confirm_new_password_hint">Confirm New Password</string>
+
+    <!-- Loans -->
+    <string name="loans_title">My Loans</string>
+    <string name="add_loan">Add Loan</string>
+    <string name="borrower_name_hint">Borrower Name</string>
+    <string name="amount_hint">Amount (₱)</string>
+    <string name="date_lent_hint">Date Lent (YYYY-MM-DD)</string>
+    <string name="due_date_hint">Due Date (optional)</string>
+    <string name="interest_rate_hint">Monthly Interest Rate % (optional)</string>
+    <string name="penalty_rate_hint">Penalty Rate % per month (optional)</string>
+    <string name="description_hint">Description (optional)</string>
+    <string name="add_payment">Log Payment</string>
+    <string name="payment_amount_hint">Payment Amount (₱)</string>
+    <string name="payment_date_hint">Payment Date (YYYY-MM-DD)</string>
+    <string name="payment_note_hint">Note (optional)</string>
+    <string name="mark_paid">Mark as Paid</string>
+    <string name="mark_active">Reopen</string>
+    <string name="filter_all">All</string>
+    <string name="filter_active">Active</string>
+    <string name="filter_paid">Paid</string>
+
+    <!-- Debtors -->
+    <string name="debtors_title">Debtors</string>
+    <string name="add_debtor">Add Debtor</string>
+    <string name="debtor_name_hint">Debtor Name</string>
+    <string name="phone_hint">Phone (optional)</string>
+    <string name="debtor_email_hint">Email (optional)</string>
+    <string name="show_archived">Show Archived</string>
+    <string name="hide_archived">Hide Archived</string>
+
+    <!-- Entries -->
+    <string name="entries_title">Entries</string>
+    <string name="add_entry">Add Entry</string>
+    <string name="original_amount_hint">Original Amount (₱)</string>
+    <string name="lending_date_hint">Lending Date (YYYY-MM-DD)</string>
+    <string name="payback_date_hint">Expected Payback (optional)</string>
+    <string name="notes_hint">Notes (optional)</string>
+    <string name="add_collection">Log Collection</string>
+    <string name="collection_amount_hint">Amount Collected (₱)</string>
+    <string name="collection_date_hint">Collection Date (YYYY-MM-DD)</string>
+
+    <!-- Calculator -->
+    <string name="calculator_title">Loan Calculator</string>
+    <string name="calc_simple">Simple Interest</string>
+    <string name="calc_compound">Compound Interest</string>
+    <string name="calc_emi">EMI / Installment</string>
+    <string name="calculate">Calculate</string>
+    <string name="principal_hint">Principal Amount (₱)</string>
+    <string name="rate_hint">Annual Interest Rate (%)</string>
+    <string name="time_hint">Time (years)</string>
+    <string name="months_hint">Loan Term (months)</string>
+    <string name="monthly_rate_hint">Monthly Interest Rate (%)</string>
 
     <!-- Admin -->
     <string name="admin_title">Admin Panel</string>
     <string name="admin_subtitle">Manage your application</string>
+    <string name="admin_panel">Admin Panel</string>
+    <string name="admin_panel_desc">Manage users and system settings</string>
+    <string name="manage_loans">Manage Loans</string>
+    <string name="manage_loans_desc">Review loan records</string>
     <string name="label_admin_email">Logged in as</string>
     <string name="admin_actions">Quick Actions</string>
-    <string name="manage_loans">Manage Loans</string>
-    <string name="manage_loans_desc">Review and approve loan requests</string>
+    <string name="role_user">User</string>
+    <string name="role_admin">Admin</string>
+
+    <!-- Refresh -->
+    <string name="refresh_profile">Refresh</string>
 </resources>

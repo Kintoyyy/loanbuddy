@@ -3,63 +3,32 @@ package com.example.loanbuddy
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.loanbuddy.api.RetrofitClient
 import com.example.loanbuddy.data.LoginRequest
-import com.example.loanbuddy.data.LoginResponse
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.example.loanbuddy.databinding.ActivityLoginBinding
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
-    private lateinit var emailInput: EditText
-    private lateinit var passwordInput: EditText
-    private lateinit var loginButton: Button
-    private lateinit var progressBar: ProgressBar
-    private lateinit var registerLink: TextView
-    private lateinit var backButton: Button
-    private lateinit var registerButtonAlt: Button
+    private lateinit var binding: ActivityLoginBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_login)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.login_container)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        emailInput = findViewById(R.id.email_input)
-        passwordInput = findViewById(R.id.password_input)
-        loginButton = findViewById(R.id.login_button)
-        progressBar = findViewById(R.id.progress_bar)
-        registerLink = findViewById(R.id.register_link)
-        backButton = findViewById(R.id.back_button)
-        registerButtonAlt = findViewById(R.id.register_button_alt)
-
-        loginButton.setOnClickListener { performLogin() }
-        registerLink.setOnClickListener {
+        binding.loginButton.setOnClickListener { performLogin() }
+        binding.registerLink.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
-        registerButtonAlt.setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
-        }
-        backButton.setOnClickListener { finish() }
     }
 
     private fun performLogin() {
-        val email = emailInput.text.toString().trim()
-        val password = passwordInput.text.toString()
+        val email = binding.emailInput.text.toString().trim()
+        val password = binding.passwordInput.text.toString()
 
         if (email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show()
@@ -68,41 +37,36 @@ class LoginActivity : AppCompatActivity() {
 
         setLoading(true)
 
-        RetrofitClient.apiService
-            .login(LoginRequest(email, password))
-            .enqueue(object : Callback<LoginResponse> {
-                override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
-                    setLoading(false)
-                    if (response.isSuccessful) {
-                        val body = response.body()
-                        val token = body?.access_token
-                        if (token != null) {
-                            AuthManager.saveSession(
-                                this@LoginActivity,
-                                token,
-                                body.refresh_token ?: "",
-                                body.user
-                            )
-                            navigateToHome()
-                        } else {
-                            Toast.makeText(this@LoginActivity, "Login failed: empty token", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        val msg = when (response.code()) {
-                            400 -> "Invalid email or password"
-                            422 -> "Invalid email format"
-                            else -> "Login failed (${response.code()})"
-                        }
-                        Toast.makeText(this@LoginActivity, msg, Toast.LENGTH_SHORT).show()
-                        passwordInput.text.clear()
-                    }
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.apiService.login(LoginRequest(email, password))
+                val token = response.access_token
+                if (token != null) {
+                    AuthManager.saveSession(this@LoginActivity, token, response.refresh_token ?: "", response.user_id, email)
+                    loadProfileAndNavigate(token)
+                } else {
+                    showError("Login failed: no token returned")
                 }
+            } catch (e: retrofit2.HttpException) {
+                val msg = when (e.code()) {
+                    400, 401 -> "Invalid email or password"
+                    else -> "Login failed (${e.code()})"
+                }
+                showError(msg)
+            } catch (e: Exception) {
+                showError("Network error: ${e.message}")
+            } finally {
+                setLoading(false)
+            }
+        }
+    }
 
-                override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                    setLoading(false)
-                    Toast.makeText(this@LoginActivity, "Network error: ${t.message}", Toast.LENGTH_SHORT).show()
-                }
-            })
+    private suspend fun loadProfileAndNavigate(token: String) {
+        try {
+            val profile = RetrofitClient.apiService.getProfile("Bearer $token")
+            AuthManager.saveProfile(this, profile.first_name, profile.last_name, profile.username)
+        } catch (_: Exception) { /* profile load failure is non-fatal */ }
+        navigateToHome()
     }
 
     private fun navigateToHome() {
@@ -111,8 +75,13 @@ class LoginActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    private fun showError(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        binding.passwordInput.text?.clear()
+    }
+
     private fun setLoading(loading: Boolean) {
-        progressBar.visibility = if (loading) View.VISIBLE else View.GONE
-        loginButton.isEnabled = !loading
+        binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+        binding.loginButton.isEnabled = !loading
     }
 }

@@ -3,25 +3,50 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Shadcn/Zinc palette -->
-    <color name="color_dark_primary">#18181B</color>
+    <!-- Zinc / Slate palette -->
     <color name="zinc_900">#18181B</color>
+    <color name="zinc_800">#27272A</color>
     <color name="zinc_700">#3F3F46</color>
     <color name="zinc_500">#71717A</color>
     <color name="zinc_400">#A1A1AA</color>
+    <color name="zinc_300">#D4D4D8</color>
     <color name="zinc_200">#E4E4E7</color>
     <color name="zinc_100">#F4F4F5</color>
     <color name="zinc_50">#FAFAFA</color>
 
-    <!-- Input -->
-    <color name="input_bg">#F0F4FF</color>
-    <color name="input_border">#E2E8F0</color>
+    <!-- Semantic status colors -->
+    <color name="emerald_600">#059669</color>
+    <color name="emerald_500">#10B981</color>
+    <color name="emerald_100">#D1FAE5</color>
+    <color name="emerald_700">#047857</color>
 
-    <!-- Accent -->
-    <color name="color_orange">#F97316</color>
-    <color name="color_orange_light">#FFF7ED</color>
+    <color name="rose_600">#E11D48</color>
+    <color name="rose_500">#F43F5E</color>
+    <color name="rose_100">#FFE4E6</color>
+    <color name="rose_700">#BE123C</color>
 
-    <!-- Page -->
+    <color name="amber_600">#D97706</color>
+    <color name="amber_500">#F59E0B</color>
+    <color name="amber_100">#FEF3C7</color>
+    <color name="amber_700">#B45309</color>
+
+    <color name="sky_600">#0284C7</color>
+    <color name="sky_500">#0EA5E9</color>
+    <color name="sky_100">#E0F2FE</color>
+    <color name="sky_700">#0369A1</color>
+
+    <color name="violet_600">#7C3AED</color>
+    <color name="violet_100">#EDE9FE</color>
+    <color name="violet_700">#6D28D9</color>
+
+    <!-- Page / card backgrounds -->
     <color name="bg_page">#F4F4F5</color>
     <color name="bg_card">#FFFFFF</color>
+    <color name="input_bg">#F8FAFC</color>
+    <color name="input_border">#E4E4E7</color>
+
+    <!-- Legacy aliases -->
+    <color name="color_dark_primary">#18181B</color>
+    <color name="color_orange">#F97316</color>
+    <color name="color_orange_light">#FFF7ED</color>
 </resources>

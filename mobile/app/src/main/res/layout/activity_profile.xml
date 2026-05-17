@@ -1,70 +1,145 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/profile_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_page"
-    android:fillViewport="true"
-    tools:context=".ProfileActivity">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Dark top header -->
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/zinc_900"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingTop="52dp"
-            android:paddingBottom="28dp">
+            android:paddingHorizontal="20dp"
+            android:paddingTop="48dp"
+            android:paddingBottom="24dp">
 
-            <FrameLayout
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:background="@drawable/bg_circle_light">
-                <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_user"
-                    android:contentDescription="@null"
-                    app:tint="@color/zinc_700" />
-            </FrameLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:text="@string/profile_title"
-                android:textColor="@color/white"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
+                <ImageButton
+                    android:id="@+id/back_button"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_arrow_left"
+                    android:contentDescription="Back"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="My Profile"
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/progress_bar"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Avatar + name -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/profile_subtitle"
-                android:textColor="@color/zinc_400"
-                android:textSize="13sp" />
+                android:layout_marginTop="20dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp">
+
+                    <ImageView
+                        android:id="@+id/avatar_image"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@color/zinc_700"
+                        android:scaleType="centerCrop"
+                        android:contentDescription="Profile photo"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/avatar_initials"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:gravity="center"
+                        android:background="@color/zinc_700"
+                        android:textColor="@color/white"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:text="?" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="16dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/profile_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="—"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/profile_email"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="—"
+                        android:textColor="@color/zinc_400"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/profile_username"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text=""
+                        android:textColor="@color/zinc_500"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_change_photo"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_camera"
+                    android:contentDescription="Change photo"
+                    app:tint="@color/zinc_400" />
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Content -->
+        <!-- Info card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="32dp">
+            android:padding="16dp">
 
-            <!-- Info card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -80,145 +155,77 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- Full Name row -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingVertical="12dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_full_name"
-                            android:textColor="@color/zinc_400"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.08"
-                            tools:ignore="SmallSp" />
-                        <TextView
-                            android:id="@+id/name_value"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:textColor="@color/zinc_900"
-                            android:textSize="15sp"
-                            tools:text="John Doe" />
+                    <!-- First Name -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="FIRST NAME" android:textColor="@color/zinc_400" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+                        <TextView android:id="@+id/val_first_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="—" android:textColor="@color/zinc_900" android:textSize="15sp" />
                     </LinearLayout>
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/zinc_100" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/zinc_100" />
 
-                    <!-- Email row -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingVertical="12dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_email"
-                            android:textColor="@color/zinc_400"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.08"
-                            tools:ignore="SmallSp" />
-                        <TextView
-                            android:id="@+id/email_value"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:textColor="@color/zinc_900"
-                            android:textSize="15sp"
-                            tools:text="john@example.com" />
+                    <!-- Last Name -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LAST NAME" android:textColor="@color/zinc_400" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+                        <TextView android:id="@+id/val_last_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="—" android:textColor="@color/zinc_900" android:textSize="15sp" />
                     </LinearLayout>
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/zinc_100" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/zinc_100" />
 
-                    <!-- Role row -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingVertical="12dp">
+                    <!-- Username -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="USERNAME" android:textColor="@color/zinc_400" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+                        <TextView android:id="@+id/val_username" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="—" android:textColor="@color/zinc_900" android:textSize="15sp" />
+                    </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_role"
-                                android:textColor="@color/zinc_400"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:letterSpacing="0.08"
-                                tools:ignore="SmallSp" />
-                            <TextView
-                                android:id="@+id/role_value"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:textColor="@color/zinc_900"
-                                android:textSize="15sp"
-                                tools:text="user" />
-                        </LinearLayout>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/zinc_100" />
 
+                    <!-- Birthday -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="BIRTHDAY" android:textColor="@color/zinc_400" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+                        <TextView android:id="@+id/val_birthday" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="—" android:textColor="@color/zinc_900" android:textSize="15sp" />
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/zinc_100" />
+
+                    <!-- Phone -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="PHONE" android:textColor="@color/zinc_400" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+                        <TextView android:id="@+id/val_phone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="—" android:textColor="@color/zinc_900" android:textSize="15sp" />
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/zinc_100" />
+
+                    <!-- Bio -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="BIO" android:textColor="@color/zinc_400" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+                        <TextView android:id="@+id/val_bio" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="—" android:textColor="@color/zinc_900" android:textSize="15sp" />
                     </LinearLayout>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <ProgressBar
-                android:id="@+id/progress_bar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginTop="16dp"
-                android:indeterminateTint="@color/zinc_700"
-                android:visibility="gone" />
-
-            <!-- Refresh button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/refresh_button"
+            <!-- Action buttons -->
+            <Button
+                android:id="@+id/btn_edit_profile"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:layout_marginTop="20dp"
-                android:text="@string/refresh_profile"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="@color/zinc_900"
+                android:text="Edit Profile"
                 android:textColor="@color/white"
                 android:textSize="14sp"
-                app:backgroundTint="@color/zinc_900"
-                app:cornerRadius="8dp"
-                app:icon="@drawable/ic_refresh"
-                app:iconGravity="textStart"
-                app:iconTint="@color/white" />
+                android:textStyle="bold" />
 
-            <!-- Back button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/back_button"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            <Button
+                android:id="@+id/btn_change_password"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:layout_marginTop="10dp"
-                android:text="@string/go_back"
-                android:textColor="@color/zinc_900"
-                android:textSize="14sp"
-                app:cornerRadius="8dp"
-                app:icon="@drawable/ic_arrow_left"
-                app:iconGravity="textStart"
-                app:iconTint="@color/zinc_900"
-                app:strokeColor="@color/zinc_200"
-                app:strokeWidth="1dp" />
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/zinc_700"
+                android:text="Change Password"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
 
         </LinearLayout>
     </LinearLayout>
-
 </ScrollView>

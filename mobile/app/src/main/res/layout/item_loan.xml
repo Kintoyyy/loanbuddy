@@ -131,7 +131,7 @@
                 android:textColor="@color/sky_700"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.CardAction" />
 
             <Button
                 android:id="@+id/btn_toggle_paid"
@@ -144,7 +144,7 @@
                 android:textColor="@color/emerald_700"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.CardAction" />
 
             <Button
                 android:id="@+id/btn_edit"
@@ -157,7 +157,7 @@
                 android:textColor="@color/zinc_700"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.CardAction" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -78,12 +78,12 @@
                     android:id="@+id/toggle_archived"
                     android:layout_width="wrap_content"
                     android:layout_height="34dp"
+                    style="@style/Btn.CardAction"
                     android:backgroundTint="@color/zinc_100"
                     android:text="Show Archived"
                     android:textColor="@color/zinc_700"
                     android:textSize="12sp"
-                    android:textStyle="bold"
-                    style="@style/Widget.MaterialComponents.Button" />
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 

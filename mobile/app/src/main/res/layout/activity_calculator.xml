@@ -68,12 +68,8 @@
                     android:layout_width="0dp"
                     android:layout_height="34dp"
                     android:layout_weight="1"
-                    android:backgroundTint="@color/zinc_900"
-                    android:text="Simple"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    style="@style/Widget.MaterialComponents.Button" />
+                    style="@style/Btn.Filter.Active"
+                    android:text="Simple" />
 
                 <Button
                     android:id="@+id/tab_compound"
@@ -81,22 +77,16 @@
                     android:layout_height="34dp"
                     android:layout_weight="1"
                     android:layout_marginHorizontal="4dp"
-                    android:backgroundTint="@android:color/transparent"
-                    android:text="Compound"
-                    android:textColor="@color/zinc_500"
-                    android:textSize="12sp"
-                    style="@style/Widget.MaterialComponents.Button" />
+                    style="@style/Btn.Filter.Inactive"
+                    android:text="Compound" />
 
                 <Button
                     android:id="@+id/tab_emi"
                     android:layout_width="0dp"
                     android:layout_height="34dp"
                     android:layout_weight="1"
-                    android:backgroundTint="@android:color/transparent"
-                    android:text="EMI"
-                    android:textColor="@color/zinc_500"
-                    android:textSize="12sp"
-                    style="@style/Widget.MaterialComponents.Button" />
+                    style="@style/Btn.Filter.Inactive"
+                    android:text="EMI" />
             </LinearLayout>
         </LinearLayout>
 
@@ -204,12 +194,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:layout_marginTop="20dp"
-                android:backgroundTint="@color/zinc_900"
-                android:text="@string/calculate"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.Primary"
+                android:text="@string/calculate" />
 
             <!-- Result card -->
             <com.google.android.material.card.MaterialCardView

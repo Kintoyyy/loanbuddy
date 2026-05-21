@@ -143,12 +143,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="24dp"
-                android:backgroundTint="@color/rose_100"
-                android:text="Log Out"
-                android:textColor="@color/rose_600"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.Destructive"
+                android:text="Log Out" />
 
         </LinearLayout>
     </ScrollView>

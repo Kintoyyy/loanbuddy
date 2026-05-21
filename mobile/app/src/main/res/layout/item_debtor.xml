@@ -128,7 +128,7 @@
                 android:textColor="@color/sky_700"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.CardAction" />
 
             <Button
                 android:id="@+id/btn_archive"
@@ -140,7 +140,7 @@
                 android:textColor="@color/amber_700"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.CardAction" />
         </LinearLayout>
 
     </LinearLayout>

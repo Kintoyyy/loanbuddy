@@ -24,6 +24,7 @@ class RegisterActivity : AppCompatActivity() {
 
         binding.registerButton.setOnClickListener { performRegister() }
         binding.loginLink.setOnClickListener { finish() }
+        binding.backButton.setOnClickListener { finish() }
     }
 
     private fun performRegister() {
@@ -84,7 +85,7 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun setLoading(loading: Boolean) {
+        binding.registerButton.visibility = if (loading) View.INVISIBLE else View.VISIBLE
         binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
-        binding.registerButton.isEnabled = !loading
     }
 }

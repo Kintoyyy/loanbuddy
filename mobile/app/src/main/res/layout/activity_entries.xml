@@ -93,13 +93,13 @@
             android:paddingBottom="12dp">
 
             <Button android:id="@+id/filter_all" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1" android:layout_marginEnd="3dp"
-                android:backgroundTint="@color/zinc_900" android:text="All" android:textColor="@color/white" android:textSize="12sp" android:textStyle="bold" style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.Filter.Active" android:text="All" />
             <Button android:id="@+id/filter_open" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1" android:layout_marginHorizontal="2dp"
-                android:backgroundTint="@android:color/transparent" android:text="Open" android:textColor="@color/zinc_500" android:textSize="12sp" style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.Filter.Inactive" android:text="Open" />
             <Button android:id="@+id/filter_partial" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1" android:layout_marginHorizontal="2dp"
-                android:backgroundTint="@android:color/transparent" android:text="Partial" android:textColor="@color/zinc_500" android:textSize="12sp" style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.Filter.Inactive" android:text="Partial" />
             <Button android:id="@+id/filter_closed" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1" android:layout_marginStart="3dp"
-                android:backgroundTint="@android:color/transparent" android:text="Closed" android:textColor="@color/zinc_500" android:textSize="12sp" style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Btn.Filter.Inactive" android:text="Closed" />
         </LinearLayout>
 
         <TextView

@@ -204,7 +204,7 @@ data class EntryRequest(
     val lending_date: String,
     val expected_payback_date: String?,
     val notes: String?,
-    val penaltyRate: Double?
+    val penalty_rate: Double?
 )
 
 data class EntryCollection(

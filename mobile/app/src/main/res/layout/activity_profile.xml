@@ -216,21 +216,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="16dp"
-                android:backgroundTint="@color/zinc_900"
-                android:text="Edit Profile"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                style="@style/Btn.Primary"
+                android:text="Edit Profile" />
 
             <Button
                 android:id="@+id/btn_change_password"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/zinc_700"
-                android:text="Change Password"
-                android:textColor="@color/white"
-                android:textSize="14sp" />
+                style="@style/Btn.Secondary"
+                android:text="Change Password" />
 
         </LinearLayout>
     </LinearLayout>

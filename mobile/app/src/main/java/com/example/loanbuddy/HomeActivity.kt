@@ -11,6 +11,8 @@ import com.example.loanbuddy.EntriesActivity
 import com.example.loanbuddy.databinding.ActivityHomeBinding
 import com.example.loanbuddy.model.Entry
 import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.model.session.DashboardCache
+import com.example.loanbuddy.presenter.HomeSummary
 import com.example.loanbuddy.presenter.HomePresenter
 import com.example.loanbuddy.ui.BarChartView
 import kotlinx.coroutines.launch
@@ -50,7 +52,6 @@ class HomeActivity : AppCompatActivity() {
         }
 
         BottomNavHelper.setup(this, BottomNavHelper.NAV_HOME)
-        loadDashboard()
     }
 
     override fun onResume() {
@@ -60,55 +61,67 @@ class HomeActivity : AppCompatActivity() {
 
     private fun loadDashboard() {
         val token = AuthManager.getBearerToken(this)
-        binding.statsProgress.visibility = View.VISIBLE
+
+        // Render cached data immediately — zero perceived latency
+        val cached = DashboardCache.load(this)
+        if (cached != null) {
+            renderSummary(cached)
+            // Only show spinner when cache is stale (>10 min old)
+            if (DashboardCache.isStale(this)) binding.statsProgress.visibility = View.VISIBLE
+        } else {
+            binding.statsProgress.visibility = View.VISIBLE
+        }
 
         lifecycleScope.launch {
             try {
                 val summary = homePresenter.loadSummary(token)
-                val entries = summary.entries
-                val debtors = summary.debtors
-                val loans = summary.loans
-
-                val activeEntries = entries.filter { !it.is_archived }
-                val totalOutstanding = activeEntries.sumOf { it.still_owed ?: it.original_amount }
-                val totalCollected = activeEntries.sumOf { it.total_collected ?: 0.0 }
-                val loanOutstanding = loans.sumOf { it.remaining_balance }
-                val combinedOutstanding = totalOutstanding + loanOutstanding
-
-                val activeDebtors = debtors.count { !it.is_archived }
-                val openCount = activeEntries.count { it.entry_status.lowercase() == "open" }
-                val partialCount = activeEntries.count { it.entry_status.lowercase() == "partial" }
-                val closedCount = activeEntries.count { it.entry_status.lowercase() == "closed" }
-                val totalOriginal = activeEntries.sumOf { it.original_amount }
-
-                // Update UI
-                binding.portfolioOutstanding.text = "₱${fmt.format(combinedOutstanding)}"
-                binding.portfolioSubtitle.text = "Outstanding balance across ${activeEntries.size} active entries"
-                binding.statOutstanding.text = "₱${fmt.format(combinedOutstanding)}"
-                binding.statCollected.text = "₱${fmt.format(totalCollected)}"
-                binding.statDebtors.text = activeDebtors.toString()
-                binding.statOpenEntries.text = openCount.toString()
-
-                binding.countOpen.text = openCount.toString()
-                binding.countPartial.text = partialCount.toString()
-                binding.countClosed.text = closedCount.toString()
-
-                val rate = if (totalOriginal > 0) (totalCollected / totalOriginal).toFloat() else 0f
-                val ratePercent = (rate * 100).toInt()
-                binding.circularProgress.progress = rate
-                binding.circularProgress.centerText = "$ratePercent%"
-                binding.collectionRateLabel.text = "${fmt.format(totalCollected)} of ${fmt.format(totalOriginal)} collected"
-
-                // Build 6-month cashflow chart data
-                val chartData = buildChartData(activeEntries)
-                binding.barChart.setData(chartData)
-
+                DashboardCache.save(this@HomeActivity, summary)
+                renderSummary(summary)
             } catch (e: Exception) {
-                Toast.makeText(this@HomeActivity, "Failed to load: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (cached == null) {
+                    Toast.makeText(this@HomeActivity, "Failed to load: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             } finally {
                 binding.statsProgress.visibility = View.GONE
             }
         }
+    }
+
+    private fun renderSummary(summary: HomeSummary) {
+        val entries = summary.entries
+        val debtors = summary.debtors
+        val loans = summary.loans
+
+        val activeEntries = entries.filter { !it.is_archived }
+        val totalOutstanding = activeEntries.sumOf { it.still_owed ?: it.original_amount }
+        val totalCollected = activeEntries.sumOf { it.total_collected ?: 0.0 }
+        val loanOutstanding = loans.sumOf { it.remaining_balance }
+        val combinedOutstanding = totalOutstanding + loanOutstanding
+
+        val activeDebtors = debtors.count { !it.is_archived }
+        val openCount = activeEntries.count { it.entry_status.lowercase() == "open" }
+        val partialCount = activeEntries.count { it.entry_status.lowercase() == "partial" }
+        val closedCount = activeEntries.count { it.entry_status.lowercase() == "closed" }
+        val totalOriginal = activeEntries.sumOf { it.original_amount }
+
+        binding.portfolioOutstanding.text = "₱${fmt.format(combinedOutstanding)}"
+        binding.portfolioSubtitle.text = "Outstanding balance across ${activeEntries.size} active entries"
+        binding.statOutstanding.text = "₱${fmt.format(combinedOutstanding)}"
+        binding.statCollected.text = "₱${fmt.format(totalCollected)}"
+        binding.statDebtors.text = activeDebtors.toString()
+        binding.statOpenEntries.text = openCount.toString()
+
+        binding.countOpen.text = openCount.toString()
+        binding.countPartial.text = partialCount.toString()
+        binding.countClosed.text = closedCount.toString()
+
+        val rate = if (totalOriginal > 0) (totalCollected / totalOriginal).toFloat() else 0f
+        val ratePercent = (rate * 100).toInt()
+        binding.circularProgress.progress = rate
+        binding.circularProgress.centerText = "$ratePercent%"
+        binding.collectionRateLabel.text = "${fmt.format(totalCollected)} of ${fmt.format(totalOriginal)} collected"
+
+        binding.barChart.setData(buildChartData(activeEntries))
     }
 
     private fun buildChartData(entries: List<Entry>): List<BarChartView.MonthData> {

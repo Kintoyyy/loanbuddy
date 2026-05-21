@@ -182,7 +182,7 @@ class EntriesActivity : AppCompatActivity() {
                     lending_date = date,
                     expected_payback_date = paybackDateInput.text.toString().trim().ifBlank { null },
                     notes = notesInput.text.toString().trim().ifBlank { null },
-                    penaltyRate = penaltyRateInput.text.toString().toDoubleOrNull() ?: 0.0
+                    penalty_rate = penaltyRateInput.text.toString().toDoubleOrNull() ?: 0.0
                 )
                 if (entry == null) createEntry(request) else updateEntry(entry.entry_id, request)
             }

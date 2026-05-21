@@ -81,9 +81,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="12dp"
-        android:backgroundTint="@color/zinc_900"
-        android:text="Add Payment + Attach Proof"
-        android:textColor="@color/white"
-        android:textSize="13sp" />
+        style="@style/Btn.Primary"
+        android:text="Add Payment + Attach Proof" />
 
 </LinearLayout>

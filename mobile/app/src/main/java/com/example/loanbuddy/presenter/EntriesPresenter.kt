@@ -2,6 +2,8 @@ package com.example.loanbuddy.presenter
 
 import com.example.loanbuddy.model.*
 import com.example.loanbuddy.model.network.RetrofitClient
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -12,10 +14,10 @@ data class EntriesSummary(
 )
 
 class EntriesPresenter {
-    suspend fun loadSummary(token: String): EntriesSummary {
-        val entries = RetrofitClient.apiService.getEntries(token)
-        val debtors = RetrofitClient.apiService.getDebtors(token)
-        return EntriesSummary(entries, debtors)
+    suspend fun loadSummary(token: String): EntriesSummary = coroutineScope {
+        val entries = async { RetrofitClient.apiService.getEntries(token) }
+        val debtors = async { RetrofitClient.apiService.getDebtors(token) }
+        EntriesSummary(entries.await(), debtors.await())
     }
 
     suspend fun createEntry(token: String, request: EntryRequest): Entry = RetrofitClient.apiService.createEntry(token, request)

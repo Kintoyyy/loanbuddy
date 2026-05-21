@@ -99,9 +99,9 @@ class HomeActivity : AppCompatActivity() {
         val combinedOutstanding = totalOutstanding + loanOutstanding
 
         val activeDebtors = debtors.count { !it.is_archived }
-        val openCount = activeEntries.count { it.entry_status.lowercase() == "open" }
-        val partialCount = activeEntries.count { it.entry_status.lowercase() == "partial" }
-        val closedCount = activeEntries.count { it.entry_status.lowercase() == "closed" }
+        val openCount = activeEntries.count { it.entry_status == "Open" }
+        val partialCount = activeEntries.count { it.entry_status == "Partially Collected" }
+        val closedCount = activeEntries.count { it.entry_status == "Closed" }
         val totalOriginal = activeEntries.sumOf { it.original_amount }
 
         binding.portfolioOutstanding.text = "₱${fmt.format(combinedOutstanding)}"

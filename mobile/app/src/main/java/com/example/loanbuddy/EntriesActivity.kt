@@ -1,15 +1,14 @@
 package com.example.loanbuddy
 
 import android.app.DatePickerDialog
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -25,7 +24,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.text.NumberFormat
-import java.time.LocalDate
 import java.util.*
 
 class EntriesActivity : AppCompatActivity() {
@@ -72,7 +70,10 @@ class EntriesActivity : AppCompatActivity() {
 
         binding.swipeRefresh.setColorSchemeResources(R.color.zinc_900)
         binding.swipeRefresh.setOnRefreshListener { loadData() }
+    }
 
+    override fun onResume() {
+        super.onResume()
         loadData()
     }
 
@@ -104,7 +105,9 @@ class EntriesActivity : AppCompatActivity() {
             binding.filterPartial to "partial",
             binding.filterClosed to "closed"
         ).forEach { (btn, key) ->
-            btn.setBackgroundColor(if (key == filter) getColor(R.color.zinc_900) else Color.TRANSPARENT)
+            btn.backgroundTintList = ColorStateList.valueOf(
+                if (key == filter) getColor(R.color.zinc_900) else Color.TRANSPARENT
+            )
             btn.setTextColor(if (key == filter) getColor(R.color.white) else getColor(R.color.zinc_500))
         }
     }
@@ -388,11 +391,9 @@ class EntriesActivity : AppCompatActivity() {
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun today() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        LocalDate.now().toString()
-    } else {
-        TODO("VERSION.SDK_INT < O")
+    private fun today(): String {
+        val cal = Calendar.getInstance()
+        return "%04d-%02d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
     }
 
     private fun formatDate(d: String?): String {

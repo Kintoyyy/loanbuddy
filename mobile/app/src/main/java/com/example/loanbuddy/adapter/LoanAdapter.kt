@@ -33,8 +33,11 @@ class LoanAdapter(
         b.loanAmount.text = "₱${fmt.format(loan.amount)}"
         b.remaining.text = "₱${fmt.format(loan.remaining_balance)} left"
 
+        val todayStr = java.util.Calendar.getInstance().let {
+            "%04d-%02d-%02d".format(it.get(java.util.Calendar.YEAR), it.get(java.util.Calendar.MONTH) + 1, it.get(java.util.Calendar.DAY_OF_MONTH))
+        }
         val isOverdue = loan.status == "active" && loan.due_date != null &&
-                loan.due_date < java.time.LocalDate.now().toString()
+                loan.due_date < todayStr
 
         val statusText = when {
             loan.status == "paid" -> "Paid"

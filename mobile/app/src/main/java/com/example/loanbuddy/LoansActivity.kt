@@ -69,7 +69,10 @@ class LoansActivity : AppCompatActivity() {
 
         binding.swipeRefresh.setColorSchemeResources(R.color.zinc_900)
         binding.swipeRefresh.setOnRefreshListener { loadLoans() }
+    }
 
+    override fun onResume() {
+        super.onResume()
         loadLoans()
     }
 
@@ -94,7 +97,9 @@ class LoansActivity : AppCompatActivity() {
         filter = f
         applyFilter()
         listOf(binding.filterAll to "all", binding.filterActive to "active", binding.filterPaid to "paid").forEach { (btn, key) ->
-            btn.setBackgroundColor(if (key == filter) getColor(R.color.zinc_900) else android.graphics.Color.TRANSPARENT)
+            btn.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                if (key == filter) getColor(R.color.zinc_900) else android.graphics.Color.TRANSPARENT
+            )
             btn.setTextColor(if (key == filter) getColor(R.color.white) else getColor(R.color.zinc_500))
         }
     }
@@ -386,7 +391,10 @@ class LoansActivity : AppCompatActivity() {
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 
-    private fun today() = java.time.LocalDate.now().toString()
+    private fun today(): String {
+        val cal = Calendar.getInstance()
+        return "%04d-%02d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
+    }
 
     private fun formatDate(d: String?): String {
         if (d == null) return "—"

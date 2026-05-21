@@ -50,7 +50,10 @@ class DebtorsActivity : AppCompatActivity() {
 
         binding.swipeRefresh.setColorSchemeResources(R.color.zinc_900)
         binding.swipeRefresh.setOnRefreshListener { loadDebtors() }
+    }
 
+    override fun onResume() {
+        super.onResume()
         loadDebtors()
     }
 

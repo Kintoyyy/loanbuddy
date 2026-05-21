@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,14 +6,19 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.loanbuddy.api.RetrofitClient
-import com.example.loanbuddy.data.LoginRequest
+import com.example.loanbuddy.R
+import com.example.loanbuddy.model.LoginRequest
+import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.presenter.AuthPresenter
+import com.example.loanbuddy.presenter.ProfilePresenter
 import com.example.loanbuddy.databinding.ActivityLoginBinding
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
+    private val authPresenter = AuthPresenter()
+    private val profilePresenter = ProfilePresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +44,7 @@ class LoginActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.apiService.login(LoginRequest(email, password))
+                val response = authPresenter.login(LoginRequest(email, password))
                 val token = response.access_token
                 if (token != null) {
                     AuthManager.saveSession(this@LoginActivity, token, response.refresh_token ?: "", response.user_id, email)
@@ -63,7 +68,7 @@ class LoginActivity : AppCompatActivity() {
 
     private suspend fun loadProfileAndNavigate(token: String) {
         try {
-            val profile = RetrofitClient.apiService.getProfile("Bearer $token")
+            val profile = profilePresenter.loadProfile("Bearer $token")
             AuthManager.saveProfile(this, profile.first_name, profile.last_name, profile.username)
         } catch (_: Exception) { /* profile load failure is non-fatal */ }
         navigateToHome()

@@ -39,21 +39,5 @@ services:
       - ./.env
     depends_on:
       - backend
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    depends_on:
-      - frontend
-      - backend
-    volumes:
-      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
-    environment:
-      # Provide your Cloudflare Tunnel token and optional name in the root .env
-      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-      - CLOUDFLARE_TUNNEL_NAME=${CLOUDFLARE_TUNNEL_NAME}
-    # Run the tunnel using the mounted ingress config.
-    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-
 volumes:
   minio_data:

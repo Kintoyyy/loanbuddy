@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.os.Build
 import android.os.Bundle
@@ -9,8 +9,10 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
-import com.example.loanbuddy.api.RetrofitClient
-import com.example.loanbuddy.data.Loan
+import com.example.loanbuddy.R
+import com.example.loanbuddy.model.Loan
+import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.presenter.LoansPresenter
 import com.example.loanbuddy.ui.SignaturePadView
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
@@ -27,6 +29,7 @@ class LoanAgreementDialog : DialogFragment() {
     private var amount = 0.0
     private var dateLent = ""
     private var dueDate: String? = null
+    private val loansPresenter = LoansPresenter()
 
     companion object {
         fun newInstance(loan: Loan, lenderName: String) = LoanAgreementDialog().apply {
@@ -104,7 +107,7 @@ class LoanAgreementDialog : DialogFragment() {
 
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.uploadLoanProof(token, loanId, part)
+                loansPresenter.uploadLoanProof(token, loanId, part)
                 Toast.makeText(requireContext(), "Agreement signed & saved", Toast.LENGTH_SHORT).show()
                 dismiss()
             } catch (e: Exception) {

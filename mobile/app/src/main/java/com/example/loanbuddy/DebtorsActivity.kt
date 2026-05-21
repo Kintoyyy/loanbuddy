@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,11 +8,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.loanbuddy.BottomNavHelper
+import com.example.loanbuddy.R
 import com.example.loanbuddy.adapter.DebtorAdapter
-import com.example.loanbuddy.api.RetrofitClient
-import com.example.loanbuddy.data.Debtor
-import com.example.loanbuddy.data.DebtorRequest
 import com.example.loanbuddy.databinding.ActivityDebtorsBinding
+import com.example.loanbuddy.model.Debtor
+import com.example.loanbuddy.model.DebtorRequest
+import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.presenter.DebtorsPresenter
 import kotlinx.coroutines.launch
 
 class DebtorsActivity : AppCompatActivity() {
@@ -21,6 +24,7 @@ class DebtorsActivity : AppCompatActivity() {
     private lateinit var adapter: DebtorAdapter
     private var allDebtors = listOf<Debtor>()
     private var showArchived = false
+    private val debtorsPresenter = DebtorsPresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,7 +59,7 @@ class DebtorsActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                allDebtors = RetrofitClient.apiService.getDebtors(token)
+                allDebtors = debtorsPresenter.loadDebtors(token)
                 applyFilter()
             } catch (e: Exception) {
                 Toast.makeText(this@DebtorsActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -118,7 +122,7 @@ class DebtorsActivity : AppCompatActivity() {
     private fun createDebtor(request: DebtorRequest) {
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.createDebtor(AuthManager.getBearerToken(this@DebtorsActivity), request)
+                debtorsPresenter.createDebtor(AuthManager.getBearerToken(this@DebtorsActivity), request)
                 loadDebtors()
                 Toast.makeText(this@DebtorsActivity, "Debtor added", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -130,7 +134,7 @@ class DebtorsActivity : AppCompatActivity() {
     private fun updateDebtor(debtorId: String, request: DebtorRequest) {
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.updateDebtor(AuthManager.getBearerToken(this@DebtorsActivity), debtorId, request)
+                debtorsPresenter.updateDebtor(AuthManager.getBearerToken(this@DebtorsActivity), debtorId, request)
                 loadDebtors()
             } catch (e: Exception) {
                 Toast.makeText(this@DebtorsActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -145,7 +149,7 @@ class DebtorsActivity : AppCompatActivity() {
             .setPositiveButton(action.replaceFirstChar { it.uppercase() }) { _, _ ->
                 lifecycleScope.launch {
                     try {
-                        RetrofitClient.apiService.archiveDebtor(AuthManager.getBearerToken(this@DebtorsActivity), debtor.debtor_id)
+                        debtorsPresenter.archiveDebtor(AuthManager.getBearerToken(this@DebtorsActivity), debtor.debtor_id)
                         loadDebtors()
                     } catch (e: Exception) {
                         Toast.makeText(this@DebtorsActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()

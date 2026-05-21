@@ -1,6 +1,6 @@
-package com.example.loanbuddy.api
+package com.example.loanbuddy.model.network
 
-import com.example.loanbuddy.data.*
+import com.example.loanbuddy.model.*
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -205,4 +205,12 @@ interface ApiService {
         @Path("id") entryId: String,
         @Body request: PenaltyRequest
     ): EntryPenalty
+
+    @Multipart
+    @POST("entries/{id}/proof")
+    suspend fun uploadEntryProof(
+        @Header("Authorization") token: String,
+        @Path("id") entryId: String,
+        @Part file: MultipartBody.Part
+    ): Response<ResponseBody>
 }

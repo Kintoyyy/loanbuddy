@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,14 +6,16 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.loanbuddy.api.RetrofitClient
-import com.example.loanbuddy.data.RegisterRequest
+import com.example.loanbuddy.R
 import com.example.loanbuddy.databinding.ActivityRegisterBinding
+import com.example.loanbuddy.model.RegisterRequest
+import com.example.loanbuddy.presenter.AuthPresenter
 import kotlinx.coroutines.launch
 
 class RegisterActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRegisterBinding
+    private val authPresenter = AuthPresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,7 +61,7 @@ class RegisterActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.register(request)
+                authPresenter.register(request)
                 Toast.makeText(
                     this@RegisterActivity,
                     "Account created! Please check your email to confirm, then log in.",

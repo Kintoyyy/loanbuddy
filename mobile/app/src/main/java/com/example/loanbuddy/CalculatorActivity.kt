@@ -1,15 +1,18 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.loanbuddy.BottomNavHelper
+import com.example.loanbuddy.R
 import com.example.loanbuddy.databinding.ActivityCalculatorBinding
-import kotlin.math.pow
+import com.example.loanbuddy.presenter.CalculatorPresenter
 
 class CalculatorActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCalculatorBinding
     private var activeTab = "simple"
+    private val calculatorPresenter = CalculatorPresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,8 +77,7 @@ class CalculatorActivity : AppCompatActivity() {
         when (activeTab) {
             "simple" -> {
                 if (time == null) { Toast.makeText(this, "Time required", Toast.LENGTH_SHORT).show(); return }
-                val interest = (principal * rate * time) / 100
-                val total = principal + interest
+                val (interest, total) = calculatorPresenter.simpleInterest(principal, rate, time)
                 showResult(
                     "Interest: ₱${fmt(interest)}\nTotal Amount: ₱${fmt(total)}"
                 )
@@ -83,8 +85,7 @@ class CalculatorActivity : AppCompatActivity() {
             "compound" -> {
                 if (time == null) { Toast.makeText(this, "Time required", Toast.LENGTH_SHORT).show(); return }
                 val n = binding.inputFreq.text.toString().toDoubleOrNull() ?: 12.0
-                val amount = principal * (1 + rate / 100 / n).pow(n * time)
-                val interest = amount - principal
+                val (interest, amount) = calculatorPresenter.compoundInterest(principal, rate, time, n)
                 showResult(
                     "Compound Interest: ₱${fmt(interest)}\nFinal Amount: ₱${fmt(amount)}"
                 )
@@ -92,15 +93,7 @@ class CalculatorActivity : AppCompatActivity() {
             "emi" -> {
                 val months = binding.inputMonths.text.toString().toDoubleOrNull()
                 if (months == null || months <= 0) { Toast.makeText(this, "Loan term required", Toast.LENGTH_SHORT).show(); return }
-                val monthlyRate = rate / 100
-                val emi = if (monthlyRate == 0.0) {
-                    principal / months
-                } else {
-                    (principal * monthlyRate * (1 + monthlyRate).pow(months)) /
-                            ((1 + monthlyRate).pow(months) - 1)
-                }
-                val totalPayment = emi * months
-                val totalInterest = totalPayment - principal
+                val (emi, totalInterest, totalPayment) = calculatorPresenter.emi(principal, rate, months)
                 showResult(
                     "Monthly Payment: ₱${fmt(emi)}\nTotal Interest: ₱${fmt(totalInterest)}\nTotal Payment: ₱${fmt(totalPayment)}"
                 )

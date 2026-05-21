@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.model.session
 
 import android.content.Context
 import android.content.SharedPreferences

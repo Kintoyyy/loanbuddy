@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,8 +6,12 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.loanbuddy.api.RetrofitClient
+import com.example.loanbuddy.BottomNavHelper
+import com.example.loanbuddy.EntriesActivity
 import com.example.loanbuddy.databinding.ActivityHomeBinding
+import com.example.loanbuddy.model.Entry
+import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.presenter.HomePresenter
 import com.example.loanbuddy.ui.BarChartView
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
@@ -18,6 +22,7 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private val fmt = NumberFormat.getNumberInstance(Locale("en", "PH"))
+    private val homePresenter = HomePresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,15 +41,12 @@ class HomeActivity : AppCompatActivity() {
 
         binding.profileAvatarBtn.setOnClickListener {
             startActivity(Intent(this, ProfileActivity::class.java))
-            overridePendingTransition(0, 0)
         }
         binding.btnAddCollection.setOnClickListener {
             startActivity(Intent(this, EntriesActivity::class.java))
-            overridePendingTransition(0, 0)
         }
         binding.btnViewLoans.setOnClickListener {
             startActivity(Intent(this, LoansActivity::class.java))
-            overridePendingTransition(0, 0)
         }
 
         BottomNavHelper.setup(this, BottomNavHelper.NAV_HOME)
@@ -62,9 +64,10 @@ class HomeActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val entries = RetrofitClient.apiService.getEntries(token)
-                val debtors = RetrofitClient.apiService.getDebtors(token)
-                val loans = RetrofitClient.apiService.getLoans(token)
+                val summary = homePresenter.loadSummary(token)
+                val entries = summary.entries
+                val debtors = summary.debtors
+                val loans = summary.loans
 
                 val activeEntries = entries.filter { !it.is_archived }
                 val totalOutstanding = activeEntries.sumOf { it.still_owed ?: it.original_amount }
@@ -108,9 +111,8 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildChartData(entries: List<com.example.loanbuddy.data.Entry>): List<BarChartView.MonthData> {
+    private fun buildChartData(entries: List<Entry>): List<BarChartView.MonthData> {
         val shortMonths = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-        val cal = Calendar.getInstance()
         return (5 downTo 0).map { offset ->
             val c = Calendar.getInstance().also { it.add(Calendar.MONTH, -offset) }
             val year = c.get(Calendar.YEAR)

@@ -3,7 +3,7 @@ package com.example.loanbuddy.adapter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.example.loanbuddy.data.Debtor
+import com.example.loanbuddy.model.Debtor
 import com.example.loanbuddy.databinding.ItemDebtorBinding
 import java.text.NumberFormat
 import java.util.Locale

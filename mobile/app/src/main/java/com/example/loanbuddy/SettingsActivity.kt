@@ -1,10 +1,13 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.example.loanbuddy.BottomNavHelper
+import com.example.loanbuddy.R
 import com.example.loanbuddy.databinding.ActivitySettingsBinding
+import com.example.loanbuddy.model.session.AuthManager
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -19,12 +22,10 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.itemProfile.setOnClickListener {
             startActivity(Intent(this, ProfileActivity::class.java))
-            overridePendingTransition(0, 0)
         }
 
         binding.itemChangePassword.setOnClickListener {
             startActivity(Intent(this, ProfileActivity::class.java))
-            overridePendingTransition(0, 0)
         }
 
         binding.btnLogout.setOnClickListener {

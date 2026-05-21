@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.app.DatePickerDialog
 import android.net.Uri
@@ -11,10 +11,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.loanbuddy.BottomNavHelper
+import com.example.loanbuddy.R
 import com.example.loanbuddy.adapter.LoanAdapter
-import com.example.loanbuddy.api.RetrofitClient
-import com.example.loanbuddy.data.*
 import com.example.loanbuddy.databinding.ActivityLoansBinding
+import com.example.loanbuddy.model.*
+import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.presenter.LoansPresenter
 import com.example.loanbuddy.ui.SignaturePadView
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
@@ -33,6 +36,7 @@ class LoansActivity : AppCompatActivity() {
 
     private var pendingProofLoanId: String? = null
     private var pendingProofPaymentId: String? = null
+    private val loansPresenter = LoansPresenter()
 
     private val pickProofLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null && pendingProofLoanId != null && pendingProofPaymentId != null) {
@@ -74,7 +78,7 @@ class LoansActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                allLoans = RetrofitClient.apiService.getLoans(token)
+                allLoans = loansPresenter.loadLoans(token)
                 applyFilter()
                 updateSummary()
             } catch (e: Exception) {
@@ -180,7 +184,7 @@ class LoansActivity : AppCompatActivity() {
     private fun createLoan(request: LoanRequest) {
         lifecycleScope.launch {
             try {
-                val loan = RetrofitClient.apiService.createLoan(AuthManager.getBearerToken(this@LoansActivity), request)
+                val loan = loansPresenter.createLoan(AuthManager.getBearerToken(this@LoansActivity), request)
                 loadLoans()
                 Toast.makeText(this@LoansActivity, "Loan added", Toast.LENGTH_SHORT).show()
                 val lenderName = AuthManager.getDisplayName(this@LoansActivity)
@@ -194,7 +198,7 @@ class LoansActivity : AppCompatActivity() {
     private fun updateLoan(loanId: String, request: LoanRequest) {
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.updateLoan(AuthManager.getBearerToken(this@LoansActivity), loanId, request)
+                loansPresenter.updateLoan(AuthManager.getBearerToken(this@LoansActivity), loanId, request)
                 loadLoans()
             } catch (e: Exception) {
                 Toast.makeText(this@LoansActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -209,7 +213,7 @@ class LoansActivity : AppCompatActivity() {
             .setPositiveButton("Delete") { _, _ ->
                 lifecycleScope.launch {
                     try {
-                        RetrofitClient.apiService.deleteLoan(AuthManager.getBearerToken(this@LoansActivity), loan.loan_id)
+                        loansPresenter.deleteLoan(AuthManager.getBearerToken(this@LoansActivity), loan.loan_id)
                         loadLoans()
                     } catch (e: Exception) {
                         Toast.makeText(this@LoansActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -269,11 +273,7 @@ class LoansActivity : AppCompatActivity() {
                     .setPositiveButton("Archive") { _, _ ->
                         lifecycleScope.launch {
                             try {
-                                RetrofitClient.apiService.archivePayment(
-                                    AuthManager.getBearerToken(this@LoansActivity),
-                                    loan.loan_id, payment.payment_id,
-                                    ArchiveRequest(reasonInput.text.toString().trim())
-                                )
+                                loansPresenter.archivePayment(AuthManager.getBearerToken(this@LoansActivity), loan.loan_id, payment.payment_id)
                                 loadLoans()
                                 Toast.makeText(this@LoansActivity, "Payment archived", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
@@ -302,7 +302,7 @@ class LoansActivity : AppCompatActivity() {
             val req = LoanPaymentRequest(amount = amount, note = noteInput.text.toString().trim().ifBlank { null }, paymentDate = date)
             lifecycleScope.launch {
                 try {
-                    val created = RetrofitClient.apiService.addPayment(AuthManager.getBearerToken(this@LoansActivity), loan.loan_id, req)
+                    val created = loansPresenter.addPayment(AuthManager.getBearerToken(this@LoansActivity), loan.loan_id, req)
                     loadLoans()
                     showProofOptions(loan.loan_id, created.payment_id, dialog)
                 } catch (e: retrofit2.HttpException) {
@@ -351,9 +351,7 @@ class LoansActivity : AppCompatActivity() {
                         try {
                             val body = pad.toByteArray().toRequestBody("image/png".toMediaType())
                             val part = MultipartBody.Part.createFormData("file", "signature.png", body)
-                            RetrofitClient.apiService.uploadPaymentProof(
-                                AuthManager.getBearerToken(this@LoansActivity), loanId, paymentId, part
-                            )
+                            loansPresenter.uploadPaymentProof(AuthManager.getBearerToken(this@LoansActivity), loanId, paymentId, part)
                             Toast.makeText(this@LoansActivity, "Signature saved", Toast.LENGTH_SHORT).show()
                             parentDialog.dismiss()
                         } catch (e: Exception) {
@@ -373,7 +371,7 @@ class LoansActivity : AppCompatActivity() {
                 val mime = contentResolver.getType(uri) ?: "image/jpeg"
                 val body = bytes.toRequestBody(mime.toMediaType())
                 val part = MultipartBody.Part.createFormData("file", "proof.jpg", body)
-                RetrofitClient.apiService.uploadPaymentProof(AuthManager.getBearerToken(this@LoansActivity), loanId, paymentId, part)
+                loansPresenter.uploadPaymentProof(AuthManager.getBearerToken(this@LoansActivity), loanId, paymentId, part)
                 Toast.makeText(this@LoansActivity, "Proof uploaded", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(this@LoansActivity, "Proof upload failed: ${e.message}", Toast.LENGTH_SHORT).show()

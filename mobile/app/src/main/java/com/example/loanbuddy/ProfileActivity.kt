@@ -1,4 +1,4 @@
-package com.example.loanbuddy
+package com.example.loanbuddy.view
 
 import android.app.DatePickerDialog
 import android.graphics.BitmapFactory
@@ -10,12 +10,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.loanbuddy.api.RetrofitClient
-import com.example.loanbuddy.data.UpdatePasswordRequest
-import com.example.loanbuddy.data.UpdateProfileRequest
+import com.example.loanbuddy.BottomNavHelper
+import com.example.loanbuddy.R
 import com.example.loanbuddy.databinding.ActivityProfileBinding
 import com.example.loanbuddy.databinding.DialogChangePasswordBinding
 import com.example.loanbuddy.databinding.DialogEditProfileBinding
+import com.example.loanbuddy.model.UpdatePasswordRequest
+import com.example.loanbuddy.model.UpdateProfileRequest
+import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.presenter.ProfilePresenter
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -25,6 +28,7 @@ import java.util.Calendar
 class ProfileActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProfileBinding
+    private val profilePresenter = ProfilePresenter()
 
     private val pickPhoto = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) uploadPhoto(uri)
@@ -50,7 +54,7 @@ class ProfileActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val profile = RetrofitClient.apiService.getProfile(token)
+                val profile = profilePresenter.loadProfile(token)
 
                 val firstName = profile.first_name.orEmpty()
                 val lastName = profile.last_name.orEmpty()
@@ -84,7 +88,7 @@ class ProfileActivity : AppCompatActivity() {
     private fun loadPhoto(token: String) {
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.apiService.getPhoto(token)
+                val response = profilePresenter.getPhoto(token)
                 if (response.isSuccessful) {
                     val bytes = response.body()?.bytes() ?: return@launch
                     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@launch
@@ -141,10 +145,7 @@ class ProfileActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.apiService.updateProfile(
-                    token,
-                    UpdateProfileRequest(firstName, lastName, username, birthday, phone, bio)
-                )
+                val response = profilePresenter.updateProfile(token, UpdateProfileRequest(firstName, lastName, username, birthday, phone, bio))
                 AuthManager.saveProfile(this@ProfileActivity, firstName, lastName, username)
                 Toast.makeText(this@ProfileActivity, response.message ?: "Profile updated", Toast.LENGTH_SHORT).show()
                 loadProfile()
@@ -185,10 +186,7 @@ class ProfileActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.apiService.updatePassword(
-                    token,
-                    UpdatePasswordRequest(current, newPass, confirm)
-                )
+                val response = profilePresenter.updatePassword(token, UpdatePasswordRequest(current, newPass, confirm))
                 binding.progressBar.visibility = View.GONE
                 Toast.makeText(this@ProfileActivity, response.message ?: "Password updated", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -209,7 +207,7 @@ class ProfileActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.apiService.uploadPhoto(token, part)
+                val response = profilePresenter.uploadPhoto(token, part)
                 if (response.isSuccessful) {
                     Toast.makeText(this@ProfileActivity, "Photo updated", Toast.LENGTH_SHORT).show()
                     loadPhoto(token)

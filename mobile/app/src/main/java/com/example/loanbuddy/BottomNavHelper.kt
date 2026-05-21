@@ -6,6 +6,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.example.loanbuddy.view.CalculatorActivity
+import com.example.loanbuddy.view.DebtorsActivity
+import com.example.loanbuddy.view.HomeActivity
+import com.example.loanbuddy.view.LoansActivity
+import com.example.loanbuddy.view.ProfileActivity
+import com.example.loanbuddy.view.SettingsActivity
 
 object BottomNavHelper {
 
@@ -62,7 +68,6 @@ object BottomNavHelper {
                     val intent = Intent(activity, destinations[i])
                     intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                     activity.startActivity(intent)
-                    activity.overridePendingTransition(0, 0)
                 }
             }
         }

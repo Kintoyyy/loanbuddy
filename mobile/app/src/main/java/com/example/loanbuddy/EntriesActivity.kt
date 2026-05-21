@@ -1,26 +1,31 @@
 package com.example.loanbuddy
 
 import android.app.DatePickerDialog
+import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.loanbuddy.adapter.EntryAdapter
-import com.example.loanbuddy.api.RetrofitClient
-import com.example.loanbuddy.data.*
 import com.example.loanbuddy.databinding.ActivityEntriesBinding
+import com.example.loanbuddy.model.*
+import com.example.loanbuddy.model.session.AuthManager
+import com.example.loanbuddy.presenter.EntriesPresenter
 import com.example.loanbuddy.ui.SignaturePadView
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.text.NumberFormat
+import java.time.LocalDate
 import java.util.*
 
 class EntriesActivity : AppCompatActivity() {
@@ -34,6 +39,7 @@ class EntriesActivity : AppCompatActivity() {
 
     private var pendingProofEntryId: String? = null
     private var pendingProofCollectionId: String? = null
+    private val entriesPresenter = EntriesPresenter()
 
     private val pickProofLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null && pendingProofEntryId != null && pendingProofCollectionId != null) {
@@ -75,8 +81,9 @@ class EntriesActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                allEntries = RetrofitClient.apiService.getEntries(token)
-                debtors = RetrofitClient.apiService.getDebtors(token)
+                val summary = entriesPresenter.loadSummary(token)
+                allEntries = summary.entries
+                debtors = summary.debtors
                 applyFilter()
                 updateSummary()
             } catch (e: Exception) {
@@ -97,7 +104,7 @@ class EntriesActivity : AppCompatActivity() {
             binding.filterPartial to "partial",
             binding.filterClosed to "closed"
         ).forEach { (btn, key) ->
-            btn.setBackgroundColor(if (key == filter) getColor(R.color.zinc_900) else android.graphics.Color.TRANSPARENT)
+            btn.setBackgroundColor(if (key == filter) getColor(R.color.zinc_900) else Color.TRANSPARENT)
             btn.setTextColor(if (key == filter) getColor(R.color.white) else getColor(R.color.zinc_500))
         }
     }
@@ -186,7 +193,7 @@ class EntriesActivity : AppCompatActivity() {
     private fun createEntry(request: EntryRequest) {
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.createEntry(AuthManager.getBearerToken(this@EntriesActivity), request)
+                entriesPresenter.createEntry(AuthManager.getBearerToken(this@EntriesActivity), request)
                 loadData()
                 Toast.makeText(this@EntriesActivity, "Entry added", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -198,7 +205,7 @@ class EntriesActivity : AppCompatActivity() {
     private fun updateEntry(entryId: String, request: EntryRequest) {
         lifecycleScope.launch {
             try {
-                RetrofitClient.apiService.updateEntry(AuthManager.getBearerToken(this@EntriesActivity), entryId, request)
+                entriesPresenter.updateEntry(AuthManager.getBearerToken(this@EntriesActivity), entryId, request)
                 loadData()
             } catch (e: Exception) {
                 Toast.makeText(this@EntriesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -212,7 +219,7 @@ class EntriesActivity : AppCompatActivity() {
             .setPositiveButton("Archive") { _, _ ->
                 lifecycleScope.launch {
                     try {
-                        RetrofitClient.apiService.archiveEntry(AuthManager.getBearerToken(this@EntriesActivity), entry.entry_id)
+                        entriesPresenter.archiveEntry(AuthManager.getBearerToken(this@EntriesActivity), entry.entry_id)
                         loadData()
                     } catch (e: Exception) {
                         Toast.makeText(this@EntriesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -245,7 +252,7 @@ class EntriesActivity : AppCompatActivity() {
         fun refreshList() {
             lifecycleScope.launch {
                 try {
-                    collections = RetrofitClient.apiService.getEntryCollections(token, entry.entry_id)
+                    collections = entriesPresenter.loadCollections(token, entry.entry_id)
                     val items = collections.sortedBy { it.collection_date }.map { c ->
                         val archived = if (c.is_archived) " [Archived]" else ""
                         "₱${fmt.format(c.amount_collected)} · ${formatDate(c.collection_date)} · ${c.payment_method}$archived"
@@ -266,7 +273,7 @@ class EntriesActivity : AppCompatActivity() {
                     .setPositiveButton("Archive") { _, _ ->
                         lifecycleScope.launch {
                             try {
-                                RetrofitClient.apiService.archiveCollection(token, col.collection_id, ArchiveRequest(reasonInput.text.toString().trim()))
+                                entriesPresenter.archiveCollection(token, col.collection_id)
                                 refreshList()
                                 loadData()
                             } catch (e: Exception) {
@@ -302,7 +309,7 @@ class EntriesActivity : AppCompatActivity() {
             )
             lifecycleScope.launch {
                 try {
-                    val created = RetrofitClient.apiService.createCollection(token, entry.entry_id, req)
+                    val created = entriesPresenter.createCollection(token, entry.entry_id, req)
                     loadData()
                     showCollectionProofOptions(entry.entry_id, created.collection_id, dialog)
                 } catch (e: Exception) {
@@ -346,9 +353,7 @@ class EntriesActivity : AppCompatActivity() {
                         try {
                             val body = pad.toByteArray().toRequestBody("image/png".toMediaType())
                             val part = MultipartBody.Part.createFormData("file", "signature.png", body)
-                            RetrofitClient.apiService.uploadCollectionProof(
-                                AuthManager.getBearerToken(this@EntriesActivity), entryId, collectionId, part
-                            )
+                            entriesPresenter.uploadCollectionProof(AuthManager.getBearerToken(this@EntriesActivity), entryId, collectionId, part)
                             Toast.makeText(this@EntriesActivity, "Signature saved", Toast.LENGTH_SHORT).show()
                             parentDialog.dismiss()
                         } catch (e: Exception) {
@@ -368,7 +373,7 @@ class EntriesActivity : AppCompatActivity() {
                 val mime = contentResolver.getType(uri) ?: "image/jpeg"
                 val body = bytes.toRequestBody(mime.toMediaType())
                 val part = MultipartBody.Part.createFormData("file", "proof.jpg", body)
-                RetrofitClient.apiService.uploadCollectionProof(AuthManager.getBearerToken(this@EntriesActivity), entryId, collectionId, part)
+                entriesPresenter.uploadCollectionProof(AuthManager.getBearerToken(this@EntriesActivity), entryId, collectionId, part)
                 Toast.makeText(this@EntriesActivity, "Proof uploaded", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(this@EntriesActivity, "Proof upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -383,7 +388,12 @@ class EntriesActivity : AppCompatActivity() {
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 
-    private fun today() = java.time.LocalDate.now().toString()
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun today() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        LocalDate.now().toString()
+    } else {
+        TODO("VERSION.SDK_INT < O")
+    }
 
     private fun formatDate(d: String?): String {
         if (d == null) return "—"

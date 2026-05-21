@@ -1,4 +1,4 @@
-package com.example.loanbuddy.data
+package com.example.loanbuddy.model
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 

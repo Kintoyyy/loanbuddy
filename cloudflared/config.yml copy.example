@@ -1,0 +1,11 @@
+# Example Cloudflared ingress configuration.
+# Copy to cloudflared/config.yml and adapt hostnames as needed.
+
+ingress:
+  - hostname: api.example.com # replace with your API hostname (e.g. api.${DOMAIN})
+    service: http://backend:8080
+
+  - hostname: example.com # replace with your main hostname (e.g. ${DOMAIN})
+    service: http://frontend:80
+
+  - service: http_status:404

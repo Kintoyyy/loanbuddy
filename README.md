@@ -99,6 +99,40 @@ Main backend controller exposes:
 
 For sample requests and responses, see `backend/ENDPOINTS.md`.
 
+## Docker / Cloudflare Tunnel
+
+- Centralized environment: copy `./.env.example` to `./.env` and fill in your values. Docker Compose will pick up variables from the repository root `.env` so all services use the same settings.
+- Cloudflare Tunnel: a `cloudflared` service is included in `docker-compose.yml`. To use your domain:
+	1. Copy `cloudflared/config.yml.example` to `cloudflared/config.yml` and update hostnames to match your domain(s).
+	2. Obtain a tunnel token from Cloudflare (Zero Trust / `cloudflared tunnel` docs) and set `CLOUDFLARE_TUNNEL_TOKEN` in `./.env`.
+	3. Start the stack:
+
+```powershell
+# start cloudflared and services
+docker compose up -d cloudflared
+docker compose up -d
+```
+
+Notes:
+- Do not commit `./.env` with real secrets. Use `./.env.example` as a template.
+- If you want DNS-managed routing, register a tunnel via the `cloudflared` CLI and create DNS records for your hostname(s).
+
+The `cloudflared` service mounts `./cloudflared/config.yml` automatically, so ingress rules in that file are applied when the tunnel starts.
+
+Mobile backend service
+
+- The repository includes a `mobile/backend` Spring Boot module; a Dockerfile and `mobile_backend` service are added to `docker-compose.yml`. The service builds the module and exposes it on `8081` by default (mapable via `MOBILE_BACKEND_PORT`).
+- To run the mobile backend via Docker Compose:
+
+```powershell
+# ensure .env contains SUPABASE_* values and MOBILE_BACKEND_PORT if you changed it
+docker compose up -d mobile_backend
+```
+
+Notes:
+- The `mobile_backend` image uses a Gradle multi-stage build. The first build step runs Gradle inside the builder image, so the host does not need Gradle installed.
+- If the build fails due to environment-specific issues, you can build locally with Gradle and then run the produced jar in a simple JVM image.
+
 ## Tests
 
 ### Backend tests

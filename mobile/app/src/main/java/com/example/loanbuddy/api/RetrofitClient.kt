@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
 
     // Emulator → host machine localhost. Change to your machine's IP for a physical device.
-    const val BASE_URL = "http://10.0.2.2:8080/api/"
+    const val BASE_URL = "https://api-loanbuddy.kintoyyy.com/api/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

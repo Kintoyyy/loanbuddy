@@ -95,6 +95,8 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onGoSetti
     return { activeLoansCount, paidLoansCount, overdueLoansCount, totalLentLoans, totalPaidLoans, totalOutstandingLoans };
   }, [activeLoans]);
 
+  const totalOutstanding = metrics.totalOutstanding + loanMetrics.totalOutstandingLoans;
+
   const monthlySeries = useMemo(() => {
     const now = new Date();
     const months = Array.from({ length: 6 }, (_, i) => {
@@ -148,7 +150,7 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onGoSetti
   };
 
   const summaryCards = [
-    { title: "Outstanding", value: metrics.totalOutstanding, description: "Still owed", icon: Banknote, accent: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100" },
+    { title: "Outstanding", value: totalOutstanding, description: "Entries + loans", icon: Banknote, accent: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100" },
     { title: "Collected", value: metrics.totalCollected, description: "Recovered amount", icon: TrendingUp, accent: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
     { title: "Active Debtors", value: activeDebtors.length, description: "People / entities", icon: Users, accent: "text-sky-600", bg: "bg-sky-50", border: "border-sky-100" },
     { title: "Open Entries", value: metrics.openEntries, description: "Needs follow-up", icon: ListChecks, accent: "text-violet-600", bg: "bg-violet-50", border: "border-violet-100" },
@@ -203,8 +205,8 @@ function Dashboard({ onGoProfile, onGoLoans, onGoDebtors, onGoEntries, onGoSetti
             <p className="text-xs uppercase tracking-[0.18em] text-sky-200">Portfolio Overview</p>
             <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-3xl font-bold md:text-4xl">{metrics.totalOutstanding.toLocaleString()}</p>
-                <p className="mt-1 text-sm text-sky-100">Outstanding balance across {activeEntries.length} active entries</p>
+                <p className="text-3xl font-bold md:text-4xl">{totalOutstanding.toLocaleString()}</p>
+                <p className="mt-1 text-sm text-sky-100">Outstanding balance across entries and loans</p>
               </div>
               <div className="flex gap-2">
                 <button

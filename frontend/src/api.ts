@@ -1,6 +1,6 @@
 import { clearAuth, getAccessToken } from "./auth";
 
-const DEV_BACKEND_ORIGIN = "https://api-loanbuddy.kintoyyy.com";
+const DEV_BACKEND_ORIGIN = "http://localhost:8080";
 
 function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
@@ -11,7 +11,7 @@ function resolveApiBaseUrl(): string {
 
   if (!configuredBaseUrl) {
     // When no explicit base URL is provided, prefer the API hostname so
-    // production builds call the API host directly (api-loanbuddy.kintoyyy.com).
+    // production builds call the API host directly (http://localhost:8080).
     return `${DEV_BACKEND_ORIGIN}/api`;
   }
 
